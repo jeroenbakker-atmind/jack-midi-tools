@@ -70,7 +70,9 @@ fn main() {
     //spawn a non-real-time thread that prints out the midi messages we get
     std::thread::spawn(move || {
         while let Ok(m) = receiver.recv() {
-            println!("{:?}", m);
+            if m.len != 1 {
+                println!("{:?}", m);
+            }
         }
     });
 
