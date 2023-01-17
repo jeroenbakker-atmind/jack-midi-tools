@@ -42,15 +42,17 @@ where
             for (midi_in_port_name, port) in &midi_in_ports {
                 let midi_events = port.iter(ps);
                 for raw_event in midi_events {
-                    module.handle_midi_in(midi_in_port_name, &raw_event);
+                    // module.handle_midi_in(midi_in_port_name, &raw_event);
+                    println!("{:?}", raw_event);
                 }
                 //let _ = sender.try_send(midi_events);
             }
             jack::Control::Continue
         };
 
-        /*  let active_client = client
-        .activate_async((), jack::ClosureProcessHandler::new(cback))
-        .unwrap();*/
+        let active_client = client
+            .activate_async((), jack::ClosureProcessHandler::new(cback))
+            .unwrap();
+        drop(active_client)
     }
 }
