@@ -1,7 +1,7 @@
 pub type Octave = u8;
 pub const NOTES_PER_OCTAVE: u8 = 12;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Note {
     C(Octave),
     CSharp(Octave),
