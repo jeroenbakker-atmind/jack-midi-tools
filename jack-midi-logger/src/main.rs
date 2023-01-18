@@ -2,13 +2,11 @@
 //! out all values sent to it through the input port. It also sends a
 //! Note On and Off event, once every cycle, on the output port.
 
-use jack_module::{JackRunner, Runner};
+use jack_module::run_jack_module;
 use midi_logger::MidiLogger;
 
 mod midi_logger;
 
 pub fn main() {
-    let module = MidiLogger::default();
-    let runner = JackRunner::new(&module);
-    runner.run(module);
+    run_jack_module::<MidiLogger>();
 }
