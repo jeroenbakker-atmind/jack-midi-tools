@@ -25,16 +25,6 @@ pub struct MidiMessage {
     pub event: Event,
 }
 
-fn decode_midi_delta_ticks(midi_message: &[u8], index: &mut usize) -> Ticks {
-    let mut tick: Ticks = 0;
-    while midi_message[*index] >= 128 {
-        tick = (tick << 7) | (midi_message[*index] & 127) as Ticks;
-        *index += 1;
-    }
-    *index += 1;
-    tick
-}
-
 fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusCode, Channel) {
     let status_code = midi_message[*index] & 0xf0;
     let channel = (midi_message[*index] & 0x0f) + 1;
