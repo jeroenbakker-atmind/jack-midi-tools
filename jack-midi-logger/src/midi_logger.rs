@@ -1,30 +1,31 @@
 use jack::RawMidi;
 use jack_module::{Module, PortDescriptor};
 
+/// Enumeration containing the identifiers of the used ports.
 #[derive(Copy, Clone)]
-pub enum MidiLoggerPort {
-    /// Midi port that is being logged.
-    MidiInput,
+pub enum PortIdentifier {
+    /// Identifier for the midi port inputting the midi events that will be logged.
+    InputPort,
 }
 
 #[derive(Default)]
 pub struct MidiLogger {}
 
 impl Module for MidiLogger {
-    type PortDescriptorIdentifierType = MidiLoggerPort;
-    
+    type PortDescriptorIdentifierType = PortIdentifier;
+
     fn name(&self) -> &'static str {
         "jack-midi-logger"
     }
 
     fn port_descriptors(&self) -> Vec<PortDescriptor<Self::PortDescriptorIdentifierType>> {
         vec![PortDescriptor::midi_in(
-            MidiLoggerPort::MidiInput,
+            PortIdentifier::InputPort,
             "midi-input",
         )]
     }
 
-    fn handle_midi_in(&self, _port_identifier: &MidiLoggerPort, midi_event: &RawMidi) {
+    fn handle_midi_in(&self, _port_identifier: &PortIdentifier, midi_event: &RawMidi) {
         println!("{:?}", midi_event);
     }
 }
