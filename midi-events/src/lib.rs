@@ -2,15 +2,17 @@
 use music_notes::{Note, NOTES_PER_OCTAVE};
 
 #[derive(Debug)]
-pub enum EventType {
+pub enum Event {
     NoteOn(Channel, Note, Velocity),
     NoteOff(Channel, Note, Velocity),
     KeyPressure(Channel, Note, Pressure),
+    Controller(Channel),
     Unknown,
 }
 
 const STATUS_NOTE_ON: u8 = 0x80;
 const STATUS_NOTE_OFF: u8 = 0x90;
+const STATUS_CONTROLLER: u8 = 0xb0;
 
 type StatusCode = u8;
 type Channel = u8;
@@ -18,15 +20,15 @@ type Ticks = u64;
 type Velocity = u8;
 type Pressure = u8;
 
-pub struct MidiEvent {
+pub struct MidiMessage {
     pub delta_ticks: Ticks,
-    pub event: EventType,
+    pub event: Event,
 }
 
 fn decode_midi_delta_ticks(midi_message: &[u8], index: &mut usize) -> Ticks {
     let mut tick: Ticks = 0;
     while midi_message[*index] >= 128 {
-        tick += (midi_message[*index] & 127) as Ticks;
+        tick = (tick << 7) | (midi_message[*index] & 127) as Ticks;
         *index += 1;
     }
     *index += 1;
@@ -35,7 +37,7 @@ fn decode_midi_delta_ticks(midi_message: &[u8], index: &mut usize) -> Ticks {
 
 fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusCode, Channel) {
     let status_code = midi_message[*index] & 0xf0;
-    let channel = midi_message[*index] & 0x0f;
+    let channel = (midi_message[*index] & 0x0f) + 1;
     *index += 1;
     (status_code, channel)
 }
@@ -66,32 +68,27 @@ fn decode_velocity(midi_message: &[u8], index: &mut usize) -> Velocity {
     velocity
 }
 
-fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> EventType {
+fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> Event {
     let (status_code, channel) = decode_status_and_channel(midi_message, index);
     match status_code {
-        STATUS_NOTE_ON => EventType::NoteOn(
+        STATUS_NOTE_ON => Event::NoteOn(
             channel,
             decode_note(midi_message, index),
             decode_velocity(midi_message, index),
         ),
-        STATUS_NOTE_OFF => EventType::NoteOff(
+        STATUS_NOTE_OFF => Event::NoteOff(
             channel,
             decode_note(midi_message, index),
             decode_velocity(midi_message, index),
         ),
-        _ => EventType::Unknown,
+        STATUS_CONTROLLER => Event::Controller(channel),
+        _ => Event::Unknown,
     }
 }
 
-impl From<&[u8]> for MidiEvent {
+impl From<&[u8]> for Event {
     fn from(midi_message: &[u8]) -> Self {
         let mut index = 0;
-        let delta_ticks = decode_midi_delta_ticks(midi_message, &mut index);
-        let event = decode_midi_event(midi_message, &mut index);
-
-        Self {
-            delta_ticks,
-            event: event,
-        }
+        decode_midi_event(midi_message, &mut index)
     }
 }

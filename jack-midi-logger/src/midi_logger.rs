@@ -1,6 +1,6 @@
 use jack::RawMidi;
 use jack_module::{Module, PortDescriptor};
-use midi_events::MidiEvent;
+use midi_events::{Event, MidiMessage};
 
 /// Enumeration containing the identifiers of the used ports.
 #[derive(Copy, Clone)]
@@ -27,7 +27,7 @@ impl Module for MidiLogger {
     }
 
     fn handle_midi_in(&self, _port_identifier: &PortIdentifier, midi_event: &RawMidi) {
-        let msg = MidiEvent::from(midi_event.bytes);
-        println!("{:?}", msg.event);
+        let event = Event::from(midi_event.bytes);
+        println!("{:?}", event);
     }
 }
