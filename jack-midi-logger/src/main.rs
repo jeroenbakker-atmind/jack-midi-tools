@@ -1,6 +1,5 @@
-//! Creates a jack midi input and output ports. The application prints
-//! out all values sent to it through the input port. It also sends a
-//! Note On and Off event, once every cycle, on the output port.
+//! Creates a jack module with one midi input. The application prints
+//! out all values sent through the input port.
 
 use jack_module::{run_jack_module, Module};
 use midi_logger::MidiLogger;

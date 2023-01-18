@@ -6,19 +6,31 @@ pub enum Event {
     NoteOn(Channel, Note, Velocity),
     NoteOff(Channel, Note, Velocity),
     KeyPressure(Channel, Note, Pressure),
-    Controller(Channel),
-    Unknown,
+
+    Controller(Channel, u8, u8),
+    ChannelPan(Channel, Value),
+    ChannelVolume(Channel, Value),
+    AllNotesOff(Channel),
+    SystemExclusive(Channel),
+    Unknown(u8),
 }
 
 const STATUS_NOTE_ON: u8 = 0x80;
 const STATUS_NOTE_OFF: u8 = 0x90;
+const STATUS_KEY_PRESSURE: u8 = 0xa0;
 const STATUS_CONTROLLER: u8 = 0xb0;
+const STATUS_SYSTEM_EXCLUSIVE: u8 = 0xe0;
+
+const CONTROLLER_CHANNEL_VOLUME: u8 = 7;
+const CONTROLLER_CHANNEL_PAN: u8 = 10;
+const CONTROLLER_ALL_NOTES_OFF: u8 = 123;
 
 type StatusCode = u8;
 type Channel = u8;
 type Ticks = u64;
 type Velocity = u8;
 type Pressure = u8;
+type Value = u8;
 
 pub struct MidiMessage {
     pub delta_ticks: Ticks,
@@ -58,6 +70,14 @@ fn decode_velocity(midi_message: &[u8], index: &mut usize) -> Velocity {
     velocity
 }
 
+fn decode_two_values(midi_message: &[u8], index: &mut usize) -> (Value, Value) {
+    let value_1 = midi_message[*index];
+    *index += 1;
+    let value_2 = midi_message[*index];
+    *index += 1;
+    (value_1, value_2)
+}
+
 fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> Event {
     let (status_code, channel) = decode_status_and_channel(midi_message, index);
     match status_code {
@@ -71,8 +91,22 @@ fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> Event {
             decode_note(midi_message, index),
             decode_velocity(midi_message, index),
         ),
-        STATUS_CONTROLLER => Event::Controller(channel),
-        _ => Event::Unknown,
+        STATUS_KEY_PRESSURE => Event::KeyPressure(
+            channel,
+            decode_note(midi_message, index),
+            decode_velocity(midi_message, index),
+        ),
+        STATUS_CONTROLLER => {
+            let (value_1, value_2) = decode_two_values(midi_message, index);
+            match value_1 {
+                CONTROLLER_CHANNEL_VOLUME => Event::ChannelVolume(channel, value_2),
+                CONTROLLER_CHANNEL_PAN => Event::ChannelPan(channel, value_2),
+                CONTROLLER_ALL_NOTES_OFF => Event::AllNotesOff(channel),
+                _ => Event::Controller(channel, value_1, value_2),
+            }
+        }
+        STATUS_SYSTEM_EXCLUSIVE => Event::SystemExclusive(channel),
+        _ => Event::Unknown(status_code),
     }
 }
 

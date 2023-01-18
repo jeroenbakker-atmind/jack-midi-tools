@@ -16,7 +16,7 @@ impl Module for MidiLogger {
     type PortDescriptorIdentifierType = PortIdentifier;
 
     fn name(&self) -> &'static str {
-        "jack-midi-logger"
+        "midi-logger"
     }
 
     fn port_descriptors(&self) -> Vec<PortDescriptor<Self::PortDescriptorIdentifierType>> {
