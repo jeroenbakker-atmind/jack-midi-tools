@@ -15,20 +15,22 @@ where
     fn run(self, module: T);
 }
 
-pub struct JackModuleContext<T>
+pub struct JackModuleContext<T, I>
 where
     T: Module,
+    I: Copy,
 {
     module: T,
-    midi_in_ports: Vec<(&'static str, Port<MidiIn>)>,
+    midi_in_ports: Vec<(I, Port<MidiIn>)>,
 }
 
-impl<T> JackModuleContext<T>
+impl<T, I> JackModuleContext<T, I>
 where
-    T: Module,
+    I: Copy,
+    T: Module<PortDescriptorIdentifierType = I>,
 {
     fn new(jack_client: &Client, module: T) -> Self {
-        let midi_in_ports: Vec<(&'static str, Port<MidiIn>)> = module
+        let midi_in_ports: Vec<(I, Port<MidiIn>)> = module
             .port_descriptors()
             .iter()
             .filter(|pd| pd.is_input() && pd.port_type() == PortType::Midi)
@@ -36,7 +38,7 @@ where
                 let port = jack_client
                     .register_port(pd.name(), MidiIn::default())
                     .unwrap();
-                (pd.name(), port)
+                (pd.identifier(), port)
             })
             .collect();
 
@@ -47,15 +49,16 @@ where
     }
 }
 
-impl<T> ProcessHandler for JackModuleContext<T>
+impl<T, I> ProcessHandler for JackModuleContext<T, I>
 where
-    T: Module + Send,
+    T: Module<PortDescriptorIdentifierType = I> + Send,
+    I: Copy + Send,
 {
     fn process(&mut self, _: &Client, process_scope: &jack::ProcessScope) -> jack::Control {
-        for (midi_in_port_name, port) in &self.midi_in_ports {
+        for (port_identifier, port) in &self.midi_in_ports {
             let midi_events = port.iter(process_scope);
             for raw_event in midi_events {
-                self.module.handle_midi_in(midi_in_port_name, &raw_event);
+                self.module.handle_midi_in(port_identifier, &raw_event);
             }
         }
         jack::Control::Continue
@@ -66,11 +69,12 @@ pub struct JackRunner {
     jack_client: Client,
 }
 
-impl<T> Runner<T> for JackRunner
+impl<T, I> Runner<T> for JackRunner
 where
-    T: Module + Send + 'static,
+    T: Module<PortDescriptorIdentifierType = I> + Send + 'static,
+    I: Copy + Send + 'static,
 {
-    type Runtime = JackModuleContext<T>;
+    type Runtime = JackModuleContext<T, I>;
 
     fn new(module: &T) -> Self {
         let (jack_client, _status) =

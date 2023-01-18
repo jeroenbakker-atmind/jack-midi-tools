@@ -3,13 +3,23 @@ pub enum PortType {
     Midi,
 }
 
-pub struct PortDescriptor {
+pub struct PortDescriptor<I>
+where
+    I: Copy,
+{
+    identifier: I,
     name: &'static str,
     is_input: bool,
     port_type: PortType,
 }
 
-impl PortDescriptor {
+impl<I> PortDescriptor<I>
+where
+    I: Copy,
+{
+    pub fn identifier(&self) -> I {
+        self.identifier
+    }
     pub fn name(&self) -> &'static str {
         self.name
     }
@@ -22,16 +32,18 @@ impl PortDescriptor {
         self.port_type
     }
 
-    pub fn midi_in(name: &'static str) -> Self {
+    pub fn midi_in(identifier: I, name: &'static str) -> Self {
         PortDescriptor {
+            identifier,
             name,
             is_input: true,
             port_type: PortType::Midi,
         }
     }
 
-    pub fn midi_out(name: &'static str) -> Self {
+    pub fn midi_out(identifier: I, name: &'static str) -> Self {
         PortDescriptor {
+            identifier,
             name,
             is_input: false,
             port_type: PortType::Midi,
