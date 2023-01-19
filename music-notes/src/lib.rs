@@ -1,7 +1,7 @@
 pub type Octave = u8;
 pub const NOTES_PER_OCTAVE: u8 = 12;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, PartialEq, Clone)]
 pub enum Note {
     C(Octave),
     CSharp(Octave),
@@ -15,6 +15,12 @@ pub enum Note {
     A(Octave),
     ASharp(Octave),
     B(Octave),
+}
+
+impl Default for Note {
+    fn default() -> Self {
+        Note::C(4)
+    }
 }
 
 impl Note {
