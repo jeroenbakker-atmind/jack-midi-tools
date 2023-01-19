@@ -2,7 +2,8 @@ use std::sync::RwLock;
 
 use jack::RawMidi;
 use jack_module::{Module, PortDescriptor};
-use midi_events::{DeviceState, Event};
+use midi_device::DeviceState;
+use midi_events::Event;
 
 /// Enumeration containing the identifiers of the used ports.
 #[derive(Copy, Clone)]

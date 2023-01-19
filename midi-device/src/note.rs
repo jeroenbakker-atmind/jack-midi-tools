@@ -1,6 +1,5 @@
+use midi_events::{Channel, Velocity};
 use music_notes::Note;
-
-use crate::{Channel, Velocity};
 
 pub type NoteStateId = usize;
 

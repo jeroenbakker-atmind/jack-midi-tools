@@ -1,3 +1,5 @@
+use music_notes::{Note, NOTES_PER_OCTAVE};
+
 use crate::*;
 
 fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusCode, Channel) {

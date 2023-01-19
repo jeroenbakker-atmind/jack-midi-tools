@@ -1,8 +1,9 @@
 use std::ops::{Index, IndexMut};
 
+use midi_events::{Channel, Event, Velocity};
 use music_notes::Note;
 
-use crate::{Channel, Event, NoteStateId, Velocity};
+use crate::NoteStateId;
 
 use super::{ChannelState, NoteState};
 

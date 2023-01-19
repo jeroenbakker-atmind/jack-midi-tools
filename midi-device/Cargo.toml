@@ -1,5 +1,5 @@
 [package]
-name = "jack-midi-logger"
+name = "midi-device"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,4 @@ edition = "2021"
 
 [dependencies]
 midi-events = {path="../midi-events"}
-midi-device = {path="../midi-device"}
-jack-module = {path="../jack-module"}
-jack = "*"
+music-notes = {path="../music-notes"}

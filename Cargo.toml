@@ -2,6 +2,7 @@
 members=[
     "music-notes",
     "midi-events",
+    "midi-device",
     "jack-module",
     "jack-midi-logger",
 ]
