@@ -43,7 +43,6 @@ impl Module for MidiLogger {
         let event = Event::from(midi_event.bytes);
         let mut channels = self.channels.write().unwrap();
         channels.apply_event(&event);
-
-        println!("{:#?}", channels);
+        println!("{:?}", event);
     }
 }
