@@ -1,4 +1,4 @@
-use music_notes::{Note, NOTES_PER_OCTAVE};
+use music_notes::{ChromaticNote, NOTES_PER_OCTAVE};
 
 use crate::*;
 
@@ -14,19 +14,19 @@ fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusC
 /// # Example
 /// ```
 /// use midi_events::decode_note;
-/// use music_notes::Note;
+/// use music_notes::ChromaticNote;
 ///
 /// let mut index = 0;
-/// assert_eq!(decode_note(&[60], &mut index), Note::C(4));
+/// assert_eq!(decode_note(&[60], &mut index), ChromaticNote::C(4));
 /// ```
-pub fn decode_note(midi_message: &[u8], index: &mut usize) -> Note {
+pub fn decode_note(midi_message: &[u8], index: &mut usize) -> ChromaticNote {
     let midi_note = midi_message[*index];
     let octave = (midi_note / NOTES_PER_OCTAVE) - 1;
     let note_index = midi_note % NOTES_PER_OCTAVE;
 
     *index += 1;
 
-    Note::new(note_index, octave)
+    ChromaticNote::new(note_index, octave)
 }
 
 fn decode_velocity(midi_message: &[u8], index: &mut usize) -> Velocity {

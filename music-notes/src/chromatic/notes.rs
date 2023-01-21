@@ -4,8 +4,9 @@ pub type Octave = u8;
 pub type NoteStep = i32;
 pub const NOTES_PER_OCTAVE: u8 = 12;
 
+// TODO Should be a struct with tone and octave.
 #[derive(Debug, Copy, PartialEq, Clone)]
-pub enum Note {
+pub enum ChromaticNote {
     C(Octave),
     CSharp(Octave),
     D(Octave),
@@ -20,32 +21,32 @@ pub enum Note {
     B(Octave),
 }
 
-impl Default for Note {
+impl Default for ChromaticNote {
     fn default() -> Self {
-        Note::C(4)
+        ChromaticNote::C(4)
     }
 }
 
-impl Note {
-    pub fn new(note_index: u8, octave: Octave) -> Note {
+impl ChromaticNote {
+    pub fn new(note_index: u8, octave: Octave) -> ChromaticNote {
         match note_index {
-            0 => Note::C(octave),
-            1 => Note::CSharp(octave),
-            2 => Note::D(octave),
-            3 => Note::DSharp(octave),
-            4 => Note::E(octave),
-            5 => Note::F(octave),
-            6 => Note::FSharp(octave),
-            7 => Note::G(octave),
-            8 => Note::GSharp(octave),
-            9 => Note::A(octave),
-            10 => Note::ASharp(octave),
-            11 => Note::B(octave),
+            0 => ChromaticNote::C(octave),
+            1 => ChromaticNote::CSharp(octave),
+            2 => ChromaticNote::D(octave),
+            3 => ChromaticNote::DSharp(octave),
+            4 => ChromaticNote::E(octave),
+            5 => ChromaticNote::F(octave),
+            6 => ChromaticNote::FSharp(octave),
+            7 => ChromaticNote::G(octave),
+            8 => ChromaticNote::GSharp(octave),
+            9 => ChromaticNote::A(octave),
+            10 => ChromaticNote::ASharp(octave),
+            11 => ChromaticNote::B(octave),
             _ => unreachable!(),
         }
     }
 
-    fn note_index(&self) -> u8 {
+    fn tone_index(&self) -> u8 {
         match self {
             Self::C(_) => 0,
             Self::CSharp(_) => 1,
@@ -79,7 +80,7 @@ impl Note {
     }
 }
 
-impl From<i32> for Note {
+impl From<i32> for ChromaticNote {
     fn from(value: i32) -> Self {
         let octave = value / NOTES_PER_OCTAVE as i32;
         let note_index = value % NOTES_PER_OCTAVE as i32;
@@ -87,17 +88,17 @@ impl From<i32> for Note {
     }
 }
 
-impl From<Note> for i32 {
-    fn from(value: Note) -> Self {
-        (value.octave() * NOTES_PER_OCTAVE + value.note_index()) as i32
+impl From<ChromaticNote> for i32 {
+    fn from(value: ChromaticNote) -> Self {
+        (value.octave() * NOTES_PER_OCTAVE + value.tone_index()) as i32
     }
 }
 
-impl Add<NoteStep> for Note {
-    type Output = Note;
+impl Add<NoteStep> for ChromaticNote {
+    type Output = ChromaticNote;
     fn add(self, rhs: NoteStep) -> Self::Output {
         let mut value = i32::from(self);
         value += rhs;
-        Note::from(value)
+        ChromaticNote::from(value)
     }
 }

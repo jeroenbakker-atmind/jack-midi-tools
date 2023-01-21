@@ -1,12 +1,12 @@
 use midi_events::{Channel, Velocity};
-use music_notes::Note;
+use music_notes::ChromaticNote;
 
 pub type NoteStateId = usize;
 
 #[derive(Debug, Default, Clone)]
 pub struct NoteState {
     pub channel_id: Option<Channel>,
-    pub note: Note,
+    pub note: ChromaticNote,
     pub velocity: Velocity,
 }
 
@@ -16,7 +16,7 @@ impl NoteState {
         self.channel_id = None;
     }
 
-    pub fn on(&mut self, channel_id: Channel, note: &Note, velocity: Velocity) {
+    pub fn on(&mut self, channel_id: Channel, note: &ChromaticNote, velocity: Velocity) {
         self.channel_id = Some(channel_id);
         self.note = *note;
         self.velocity = velocity;

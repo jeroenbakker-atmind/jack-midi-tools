@@ -1,7 +1,7 @@
 use std::ops::{Index, IndexMut};
 
 use midi_events::{Channel, Event, Velocity};
-use music_notes::Note;
+use music_notes::ChromaticNote;
 
 use crate::NoteStateId;
 
@@ -37,7 +37,7 @@ impl DeviceState {
         }
     }
 
-    fn note_on(&mut self, channel_id: Channel, note: &Note, velocity: Velocity) {
+    fn note_on(&mut self, channel_id: Channel, note: &ChromaticNote, velocity: Velocity) {
         let channel = &self[channel_id];
         if let None = self.find_note_id(channel, note) {
             if let Some(note_id) = self.unused_notes.pop() {
@@ -49,7 +49,7 @@ impl DeviceState {
         }
     }
 
-    fn note_off(&mut self, channel_id: Channel, note: &Note, velocity: Velocity) {
+    fn note_off(&mut self, channel_id: Channel, note: &ChromaticNote, velocity: Velocity) {
         let channel = &self[channel_id];
         if let Some((active_note_index, note_id)) = self.find_note_id(channel, note) {
             self.notes[note_id].off(velocity);
@@ -58,14 +58,18 @@ impl DeviceState {
         }
     }
 
-    fn key_pressure(&mut self, channel_id: Channel, note: &Note, velocity: Velocity) {
+    fn key_pressure(&mut self, channel_id: Channel, note: &ChromaticNote, velocity: Velocity) {
         let channel = &self[channel_id];
         if let Some((_active_note_index, note_id)) = self.find_note_id(channel, note) {
             self.notes[note_id].key_pressure(velocity);
         }
     }
 
-    fn find_note_id(&self, channel: &ChannelState, note: &Note) -> Option<(usize, NoteStateId)> {
+    fn find_note_id(
+        &self,
+        channel: &ChannelState,
+        note: &ChromaticNote,
+    ) -> Option<(usize, NoteStateId)> {
         channel
             .active_notes
             .iter()

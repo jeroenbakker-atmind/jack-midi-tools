@@ -1,5 +1,5 @@
-mod chords;
-mod notes;
+mod chromatic;
+mod scale;
 
-pub use chords::*;
-pub use notes::*;
+pub use chromatic::*;
+pub use scale::*;

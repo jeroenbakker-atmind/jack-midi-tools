@@ -1,6 +1,6 @@
-use crate::{Note, NoteStep};
+use crate::{ChromaticNote, NoteStep};
 
-pub enum ChordScale {
+pub enum ChromaticChordType {
     Major,
     Minor,
     Diminished,
@@ -21,7 +21,7 @@ pub enum ChordScale {
     MinorEleventh,
 }
 
-impl ChordScale {
+impl ChromaticChordType {
     pub fn note_steps(&self) -> Vec<NoteStep> {
         match self {
             Self::Major => vec![0, 4, 7],
@@ -47,10 +47,10 @@ impl ChordScale {
 
     /// ```
     /// use music_notes::*;
-    /// let notes = ChordScale::Major.notes(Note::C(4));
-    /// assert_eq!(notes, vec![Note::C(4), Note::E(4), Note::G(4)]);
+    /// let notes = ChromaticChordType::Major.notes(ChromaticNote::C(4));
+    /// assert_eq!(notes, vec![ChromaticNote::C(4), ChromaticNote::E(4), ChromaticNote::G(4)]);
     /// ```
-    pub fn notes(&self, base_note: Note) -> Vec<Note> {
+    pub fn notes(&self, base_note: ChromaticNote) -> Vec<ChromaticNote> {
         self.note_steps().iter().map(|s| base_note + *s).collect()
     }
 }
