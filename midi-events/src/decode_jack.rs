@@ -14,10 +14,10 @@ fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusC
 /// # Example
 /// ```
 /// use midi_events::decode_note;
-/// use music_notes::ChromaticNote;
+/// use music_notes::{ChromaticNote, ChromaticTone};
 ///
 /// let mut index = 0;
-/// assert_eq!(decode_note(&[60], &mut index), ChromaticNote::C(4));
+/// assert_eq!(decode_note(&[60], &mut index), ChromaticNote::new(ChromaticTone::C, 4));
 /// ```
 pub fn decode_note(midi_message: &[u8], index: &mut usize) -> ChromaticNote {
     let midi_note = midi_message[*index];

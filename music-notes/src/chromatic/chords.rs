@@ -47,10 +47,14 @@ impl ChromaticChordType {
 
     /// ```
     /// use music_notes::*;
-    /// let notes = ChromaticChordType::Major.notes(ChromaticNote::C(4));
-    /// assert_eq!(notes, vec![ChromaticNote::C(4), ChromaticNote::E(4), ChromaticNote::G(4)]);
+    /// let notes = ChromaticChordType::Major.notes(ChromaticNote::new(ChromaticTone::C, 4));
+    /// assert_eq!(notes, vec![ChromaticNote::new(ChromaticTone::C, 4), ChromaticNote::new(ChromaticTone::E, 4), ChromaticNote::new(ChromaticTone::G, 4)]);
     /// ```
-    pub fn notes(&self, base_note: ChromaticNote) -> Vec<ChromaticNote> {
-        self.note_steps().iter().map(|s| base_note + *s).collect()
+    pub fn notes(&self, root_position: ChromaticNote) -> Vec<ChromaticNote> {
+        // TODO: add inversion.
+        self.note_steps()
+            .iter()
+            .map(|s| root_position + *s)
+            .collect()
     }
 }
