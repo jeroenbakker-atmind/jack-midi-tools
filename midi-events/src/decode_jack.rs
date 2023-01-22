@@ -1,4 +1,4 @@
-use music_notes::{ChromaticNote, NOTES_PER_OCTAVE};
+use music_notes::{ChromaticNote, ChromaticScale, Scale};
 
 use crate::*;
 
@@ -20,9 +20,10 @@ fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusC
 /// assert_eq!(decode_note(&[60], &mut index), ChromaticNote::new(ChromaticTone::C, 4));
 /// ```
 pub fn decode_note(midi_message: &[u8], index: &mut usize) -> ChromaticNote {
+    let scale = ChromaticScale::default();
     let midi_note = midi_message[*index];
-    let octave = (midi_note / NOTES_PER_OCTAVE) - 1;
-    let note_index = midi_note % NOTES_PER_OCTAVE;
+    let octave = (midi_note / scale.tones_per_octave() as u8) - 1;
+    let note_index = midi_note % scale.tones_per_octave() as u8;
 
     *index += 1;
 

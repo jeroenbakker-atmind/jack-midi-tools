@@ -1,3 +1,5 @@
+use crate::{tone::Tone, ChromaticScale};
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum ChromaticTone {
     C,
@@ -12,6 +14,14 @@ pub enum ChromaticTone {
     A,
     ASharp,
     B,
+}
+
+impl Tone for ChromaticTone {
+    type ScaleType = ChromaticScale;
+
+    fn scale() -> Self::ScaleType {
+        ChromaticScale::default()
+    }
 }
 
 impl From<u8> for ChromaticTone {
