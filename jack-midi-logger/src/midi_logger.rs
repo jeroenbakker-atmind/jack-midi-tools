@@ -1,9 +1,8 @@
-use std::sync::RwLock;
-
 use jack::RawMidi;
 use jack_module::{Module, PortDescriptor};
-use midi_device::DeviceState;
 use midi_events::Event;
+
+use crate::{gui::refresh, model::APP_MODEL};
 
 /// Enumeration containing the identifiers of the used ports.
 #[derive(Copy, Clone)]
@@ -12,18 +11,8 @@ pub enum PortIdentifier {
     InputPort,
 }
 
-#[derive()]
-pub struct MidiLogger {
-    channels: RwLock<DeviceState>,
-}
-
-impl Default for MidiLogger {
-    fn default() -> Self {
-        MidiLogger {
-            channels: RwLock::new(DeviceState::new(16, 128)),
-        }
-    }
-}
+#[derive(Default)]
+pub struct MidiLogger {}
 
 impl Module for MidiLogger {
     type PortDescriptorIdentifierType = PortIdentifier;
@@ -41,8 +30,8 @@ impl Module for MidiLogger {
 
     fn handle_midi_in(&self, _port_identifier: &PortIdentifier, midi_event: &RawMidi) {
         let event = Event::from(midi_event.bytes);
-        let mut channels = self.channels.write().unwrap();
-        channels.apply_event(&event);
+        APP_MODEL.channels.write().apply_event(&event);
+        refresh();
         println!("{:?}", event);
     }
 }

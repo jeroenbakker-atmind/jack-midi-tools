@@ -87,6 +87,10 @@ impl DeviceState {
             self.unused_notes.push(note_id);
         }
     }
+
+    pub fn note_by_note_index(&self, id: NoteStateId) -> &'_ NoteState {
+        &self.notes[id]
+    }
 }
 
 impl Index<Channel> for DeviceState {

@@ -9,4 +9,8 @@ edition = "2021"
 midi-events = {path="../midi-events"}
 midi-device = {path="../midi-device"}
 jack-module = {path="../jack-module"}
+
 jack = "*"
+egui = "*"
+eframe = "*"
+lazy_static = "*"
