@@ -15,14 +15,44 @@ pub struct DeviceState {
 }
 
 impl DeviceState {
-    pub fn new(num_channels: usize, num_polyfony_notes: usize) -> DeviceState {
+    /// Create a new midi device state with the given midi channels and polyphonic notes.
+    ///
+    /// # Examples
+    ///
+    /// Apply and note-on and a note-off event.
+    /// ```
+    /// use midi_device::*;
+    ///
+    /// let mut device = DeviceState::new(1, 16);
+    /// assert_eq!(device.unused_notes_size(), 16);
+    /// ```
+    pub fn new(num_channels: usize, num_polyphony_notes: usize) -> DeviceState {
         DeviceState {
-            notes: vec![NoteState::default(); num_polyfony_notes],
+            notes: vec![NoteState::default(); num_polyphony_notes],
             channels: vec![ChannelState::default(); num_channels],
-            unused_notes: (0..num_polyfony_notes).collect(),
+            unused_notes: (0..num_polyphony_notes).collect(),
         }
     }
 
+    /// Apply the given midi event.
+    ///
+    /// # Examples
+    ///
+    /// Apply and note-on and a note-off event.
+    /// ```
+    /// use midi_device::*;
+    /// use midi_events::*;
+    /// use music_notes::*;
+    ///
+    /// let mut device = DeviceState::new(1, 8);
+    /// assert_eq!(device.unused_notes_size(), 8);
+    /// let note_on = Event::NoteOn(1, ChromaticNote::new(ChromaticTone::C, 1), 64);
+    /// device.apply_event(&note_on);
+    /// assert_eq!(device.unused_notes_size(), 7);
+    /// let note_off = Event::NoteOff(1, ChromaticNote::new(ChromaticTone::C, 1), 64);
+    /// device.apply_event(&note_off);
+    /// assert_eq!(device.unused_notes_size(), 8);
+    /// ```
     pub fn apply_event(&mut self, event: &Event) {
         match event {
             Event::AllNotesOff(channel_id) => self.all_notes_off(*channel_id),
@@ -35,6 +65,28 @@ impl DeviceState {
             }
             _ => {}
         }
+    }
+
+    /// Return the number of unused notes.
+    ///
+    /// A device has a specific polyphony. This method returns the number of polyphone notes
+    /// that aren't linked to a channel.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use midi_device::*;
+    /// use midi_events::*;
+    /// use music_notes::*;
+    ///
+    /// let mut device = DeviceState::new(1, 8);
+    /// assert_eq!(device.unused_notes_size(), 8);
+    /// let note_on = Event::NoteOn(1, ChromaticNote::new(ChromaticTone::C, 4), 64);
+    /// device.apply_event(&note_on);
+    /// assert_eq!(device.unused_notes_size(), 7);
+    /// ```
+    pub fn unused_notes_size(&self) -> usize {
+        self.unused_notes.len()
     }
 
     fn note_on(&mut self, channel_id: Channel, note: &ChromaticNote, velocity: Velocity) {

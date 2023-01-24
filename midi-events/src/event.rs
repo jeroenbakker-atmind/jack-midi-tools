@@ -5,7 +5,9 @@ pub const STATUS_NOTE_OFF: u8 = 0x90;
 pub const STATUS_KEY_PRESSURE: u8 = 0xa0;
 pub const STATUS_CONTROLLER: u8 = 0xb0;
 pub const STATUS_PROGRAM_CHANGE: u8 = 0xc0;
-pub const STATUS_SYSTEM_EXCLUSIVE: u8 = 0xe0;
+pub const STATUS_CHANNEL_PRESSURE: u8 = 0xd0;
+pub const STATUS_MODULATION_WHEEL: u8 = 0xe0;
+pub const STATUS_SYSTEM_EXCLUSIVE: u8 = 0xf0;
 
 pub const CONTROLLER_CHANNEL_VOLUME: u8 = 7;
 pub const CONTROLLER_CHANNEL_PAN: u8 = 10;

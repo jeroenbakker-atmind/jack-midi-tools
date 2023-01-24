@@ -48,26 +48,27 @@ fn decode_two_values(midi_message: &[u8], index: &mut usize) -> (Value, Value) {
     )
 }
 
-fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> Event {
-    let (status_code, channel) = decode_status_and_channel(midi_message, index);
+fn decode_midi_event(midi_message: &[u8]) -> Event {
+    let mut index = 0;
+    let (status_code, channel) = decode_status_and_channel(midi_message, &mut index);
     match status_code {
         STATUS_NOTE_ON => Event::NoteOn(
             channel,
-            decode_note(midi_message, index),
-            decode_velocity(midi_message, index),
+            decode_note(midi_message, &mut index),
+            decode_velocity(midi_message, &mut index),
         ),
         STATUS_NOTE_OFF => Event::NoteOff(
             channel,
-            decode_note(midi_message, index),
-            decode_velocity(midi_message, index),
+            decode_note(midi_message, &mut index),
+            decode_velocity(midi_message, &mut index),
         ),
         STATUS_KEY_PRESSURE => Event::KeyPressure(
             channel,
-            decode_note(midi_message, index),
-            decode_velocity(midi_message, index),
+            decode_note(midi_message, &mut index),
+            decode_velocity(midi_message, &mut index),
         ),
         STATUS_CONTROLLER => {
-            let (value_1, value_2) = decode_two_values(midi_message, index);
+            let (value_1, value_2) = decode_two_values(midi_message, &mut index);
             match value_1 {
                 CONTROLLER_CHANNEL_VOLUME => Event::ChannelVolume(channel, value_2),
                 CONTROLLER_CHANNEL_PAN => Event::ChannelPan(channel, value_2),
@@ -75,7 +76,9 @@ fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> Event {
                 _ => Event::Controller(channel, value_1, value_2),
             }
         }
-        STATUS_PROGRAM_CHANGE => Event::ProgramChange(channel, decode_value(midi_message, index)),
+        STATUS_PROGRAM_CHANGE => {
+            Event::ProgramChange(channel, decode_value(midi_message, &mut index))
+        }
         STATUS_SYSTEM_EXCLUSIVE => Event::SystemExclusive(channel),
         _ => Event::Unknown(status_code),
     }
@@ -83,7 +86,6 @@ fn decode_midi_event(midi_message: &[u8], index: &mut usize) -> Event {
 
 impl From<&[u8]> for Event {
     fn from(midi_message: &[u8]) -> Self {
-        let mut index = 0;
-        decode_midi_event(midi_message, &mut index)
+        decode_midi_event(midi_message)
     }
 }
