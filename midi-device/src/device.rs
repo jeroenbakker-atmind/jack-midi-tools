@@ -20,11 +20,13 @@ impl DeviceState {
     /// # Examples
     ///
     /// Apply and note-on and a note-off event.
+    ///
     /// ```
     /// use midi_device::*;
     ///
-    /// let mut device = DeviceState::new(1, 16);
-    /// assert_eq!(device.unused_notes_size(), 16);
+    /// let device = DeviceState::new(1, 16);
+    /// assert_eq!(device.num_unused_notes(), 16);
+    /// assert_eq!(device.num_channels(), 1);
     /// ```
     pub fn new(num_channels: usize, num_polyphony_notes: usize) -> DeviceState {
         DeviceState {
@@ -45,13 +47,13 @@ impl DeviceState {
     /// use music_notes::*;
     ///
     /// let mut device = DeviceState::new(1, 8);
-    /// assert_eq!(device.unused_notes_size(), 8);
+    /// assert_eq!(device.num_unused_notes(), 8);
     /// let note_on = Event::NoteOn(1, ChromaticNote::new(ChromaticTone::C, 1), 64);
     /// device.apply_event(&note_on);
-    /// assert_eq!(device.unused_notes_size(), 7);
+    /// assert_eq!(device.num_unused_notes(), 7);
     /// let note_off = Event::NoteOff(1, ChromaticNote::new(ChromaticTone::C, 1), 64);
     /// device.apply_event(&note_off);
-    /// assert_eq!(device.unused_notes_size(), 8);
+    /// assert_eq!(device.num_unused_notes(), 8);
     /// ```
     pub fn apply_event(&mut self, event: &Event) {
         match event {
@@ -80,13 +82,31 @@ impl DeviceState {
     /// use music_notes::*;
     ///
     /// let mut device = DeviceState::new(1, 8);
-    /// assert_eq!(device.unused_notes_size(), 8);
+    /// assert_eq!(device.num_unused_notes(), 8);
     /// let note_on = Event::NoteOn(1, ChromaticNote::new(ChromaticTone::C, 4), 64);
     /// device.apply_event(&note_on);
-    /// assert_eq!(device.unused_notes_size(), 7);
+    /// assert_eq!(device.num_unused_notes(), 7);
     /// ```
-    pub fn unused_notes_size(&self) -> usize {
+    pub fn num_unused_notes(&self) -> usize {
         self.unused_notes.len()
+    }
+
+    /// Get the number of channels that the device has.
+    ///
+    /// # Examples
+    ///
+    /// Apply and note-on and a note-off event.
+    ///
+    /// ```
+    /// use midi_device::*;
+    ///
+    /// let device = DeviceState::new(1, 16);
+    /// assert_eq!(device.num_channels(), 1);
+    /// let device = DeviceState::new(5, 16);
+    /// assert_eq!(device.num_channels(), 5);
+    /// ```
+    pub fn num_channels(&self) -> usize {
+        self.channels.len()
     }
 
     fn note_on(&mut self, channel_id: Channel, note: &ChromaticNote, velocity: Velocity) {
