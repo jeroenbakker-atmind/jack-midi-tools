@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use egui::Slider;
+use egui_widgets_music::channel_selector::ChannelSelector;
 
 use crate::model::APP_MODEL;
 
@@ -35,9 +35,10 @@ impl eframe::App for Gui {
             let device_state = APP_MODEL.channels.read();
             ui.horizontal(|ui| {
                 ui.label("Channel: ");
-                ui.add(Slider::new(
+
+                ui.add(ChannelSelector::new(
                     &mut self.selected_channel,
-                    1..=device_state.num_channels() as u8,
+                    device_state.num_channels() as u8,
                 ));
             });
 

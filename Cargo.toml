@@ -4,5 +4,6 @@ members=[
     "midi-events",
     "midi-device",
     "jack-module",
+    "egui-widgets-music",
     "jack-midi-logger",
 ]
