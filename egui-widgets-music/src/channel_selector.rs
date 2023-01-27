@@ -1,5 +1,8 @@
 use egui::{Slider, Widget};
 
+/// Widget to select midi channel.
+///
+/// Midi channels are 1-based.
 pub struct ChannelSelector<'a> {
     num_channels: u8,
     selected_channel: &'a mut u8,

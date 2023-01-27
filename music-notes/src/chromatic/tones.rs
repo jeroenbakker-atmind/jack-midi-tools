@@ -1,6 +1,6 @@
 use crate::{tone::Tone, ChromaticScale};
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub enum ChromaticTone {
     C,
     CSharp,

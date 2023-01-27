@@ -4,13 +4,13 @@ use crate::{Octave, Scale, Tone};
 
 pub type NoteStep = i32;
 
-#[derive(Debug, Copy, PartialEq, Clone)]
+#[derive(Debug, Copy, PartialEq, Clone, PartialOrd)]
 pub struct Note<T>
 where
     T: Tone + Sized,
 {
-    pub tone: T,
     pub octave: Octave,
+    pub tone: T,
 }
 
 impl<T> Note<T>
