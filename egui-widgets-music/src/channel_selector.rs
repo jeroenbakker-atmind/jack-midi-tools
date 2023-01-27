@@ -1,5 +1,3 @@
-use std::num;
-
 use egui::{Slider, Widget};
 
 pub struct ChannelSelector<'a> {

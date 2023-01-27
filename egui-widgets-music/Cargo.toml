@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 egui = "0.20.1"
+music-notes = {path="../music-notes/"}

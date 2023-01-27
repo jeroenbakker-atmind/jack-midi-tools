@@ -1,6 +1,6 @@
 use std::sync::RwLock;
 
-use egui_widgets_music::channel_selector::ChannelSelector;
+use egui_widgets_music::{channel_selector::ChannelSelector, piano_keys::PianoKeys};
 
 use crate::model::APP_MODEL;
 
@@ -43,10 +43,13 @@ impl eframe::App for Gui {
             });
 
             let channel = &device_state[self.selected_channel];
-            for active_note_id in &channel.active_notes {
-                let note = device_state.note_by_note_index(*active_note_id);
-                ui.label(format!("{:?}", note.note));
-            }
+            let pressed_keys = channel
+                .active_notes
+                .iter()
+                .map(|note_id| device_state.note_by_note_index(*note_id))
+                .map(|note_state| note_state.note)
+                .collect();
+            ui.add(PianoKeys::new(pressed_keys));
         });
     }
 }
