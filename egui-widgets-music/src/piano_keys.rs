@@ -6,7 +6,11 @@ pub struct PianoConfig {
     pub last_key: ChromaticNote,
     pub white_key_size_ratio: f32,
     pub ratio_rounding: f32,
+    pub color_white_key: Color32,
+    pub color_black_key: Color32,
+    pub color_pressed_key: Color32,
 }
+
 impl Default for PianoConfig {
     fn default() -> Self {
         Self {
@@ -14,6 +18,9 @@ impl Default for PianoConfig {
             last_key: ChromaticNote::new(ChromaticTone::C, 8),
             white_key_size_ratio: 6.0,
             ratio_rounding: 0.1,
+            color_black_key: Color32::BLACK,
+            color_white_key: Color32::WHITE,
+            color_pressed_key: Color32::GRAY,
         }
     }
 }
@@ -60,60 +67,55 @@ impl PianoKey for ChromaticNote {
 
 impl Widget for PianoKeys {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        //for key in self.first_key..=self.last_key {}
         let number_of_white_keys = (i32::from(self.config.first_key)
             ..=i32::from(self.config.last_key))
             .map(|i| ChromaticNote::from(i))
             .filter(|k| k.is_white_key())
             .count();
-        let width = ui.available_width();
-        let key_width = width / number_of_white_keys as f32;
-        let rounding = key_width * self.config.ratio_rounding;
-        let key_height = key_width * self.config.white_key_size_ratio;
+        let canvas_width = ui.available_width();
+        let white_key_width = canvas_width / number_of_white_keys as f32;
+        let rounding = white_key_width * self.config.ratio_rounding;
+        let white_key_height = white_key_width * self.config.white_key_size_ratio;
         let painter = ui.painter();
-        let mut key_number = 0;
-        for i in i32::from(self.config.first_key)..=i32::from(self.config.last_key) {
-            let note = ChromaticNote::from(i);
-            if note.is_black_key() {
-                continue;
-            }
-            let key = key_number as f32;
-            let rect = Rect {
-                min: egui::Pos2 {
-                    x: key * key_width + 1.0,
-                    y: 50.0,
-                },
-                max: egui::Pos2 {
-                    x: (key + 1.0) * key_width - 1.0,
-                    y: 50.0 + key_height,
-                },
-            };
 
-            let fill_color = if self.pressed_keys.contains(&note) {
-                Color32::GRAY
-            } else if note.is_white_key() {
-                Color32::WHITE
-            } else {
-                Color32::BLACK
-            };
+        // Draw white keys.
+        (i32::from(self.config.first_key)..=i32::from(self.config.last_key))
+            .map(|i| ChromaticNote::from(i))
+            .filter(|n| n.is_white_key())
+            .enumerate()
+            .for_each(|(key_number, note)| {
+                let fill_color = if self.pressed_keys.contains(&note) {
+                    self.config.color_pressed_key
+                } else {
+                    self.config.color_white_key
+                };
+                let key = key_number as f32;
+                painter.rect_filled(
+                    Rect {
+                        min: egui::Pos2 {
+                            x: key * white_key_width + 1.0,
+                            y: 50.0,
+                        },
+                        max: egui::Pos2 {
+                            x: (key + 1.0) * white_key_width - 1.0,
+                            y: 50.0 + white_key_height,
+                        },
+                    },
+                    Rounding {
+                        ne: 0.0,
+                        nw: 0.0,
+                        se: rounding,
+                        sw: rounding,
+                    },
+                    fill_color,
+                );
+            });
 
-            painter.rect_filled(
-                rect,
-                Rounding {
-                    ne: 0.0,
-                    nw: 0.0,
-                    se: rounding,
-                    sw: rounding,
-                },
-                fill_color,
-            );
-            key_number += 1;
-        }
+        // TODO: paint black keys.
 
-        let mut response = ui.label("");
-        for key in &self.pressed_keys {
-            response = ui.label(format!("{:?}", key));
-        }
+        // Dummy label as we need to return a response.
+        // TODO: we should construct a valid response.
+        let response = ui.label("");
         response
     }
 }
