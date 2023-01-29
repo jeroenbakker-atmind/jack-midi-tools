@@ -1,7 +1,7 @@
 use music_notes::ChromaticNote;
 
-pub const STATUS_NOTE_ON: u8 = 0x80;
-pub const STATUS_NOTE_OFF: u8 = 0x90;
+pub const STATUS_NOTE_OFF: u8 = 0x80;
+pub const STATUS_NOTE_ON: u8 = 0x90;
 pub const STATUS_KEY_PRESSURE: u8 = 0xa0;
 pub const STATUS_CONTROLLER: u8 = 0xb0;
 pub const STATUS_PROGRAM_CHANGE: u8 = 0xc0;
