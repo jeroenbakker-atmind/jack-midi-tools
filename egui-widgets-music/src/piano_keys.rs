@@ -7,6 +7,7 @@ pub struct PianoConfig {
     pub white_key_size_ratio: f32,
     pub black_key_size_ratio: f32,
     pub ratio_rounding: f32,
+    pub ratio_width_white_to_black_keys: f32,
     pub color_white_key: Color32,
     pub color_black_key: Color32,
     pub color_white_pressed_key: Color32,
@@ -19,7 +20,8 @@ impl Default for PianoConfig {
             first_key: ChromaticNote::new(ChromaticTone::A, 0),
             last_key: ChromaticNote::new(ChromaticTone::C, 8),
             white_key_size_ratio: 6.0,
-            black_key_size_ratio: 3.0,
+            black_key_size_ratio: 3.5,
+            ratio_width_white_to_black_keys: 0.8,
             ratio_rounding: 0.1,
             color_black_key: Color32::BLACK,
             color_white_key: Color32::WHITE,
@@ -49,6 +51,7 @@ trait PianoKey {
         !self.is_white_key()
     }
     fn is_followed_by_black_key(&self) -> bool;
+    fn key_offset(&self) -> f32;
 }
 
 impl PianoKey for ChromaticNote {
@@ -84,6 +87,23 @@ impl PianoKey for ChromaticNote {
             | ChromaticTone::GSharp => false,
         }
     }
+
+    fn key_offset(&self) -> f32 {
+        match self.tone {
+            ChromaticTone::A
+            | ChromaticTone::C
+            | ChromaticTone::D
+            | ChromaticTone::F
+            | ChromaticTone::G
+            | ChromaticTone::E
+            | ChromaticTone::B => 0.0,
+            ChromaticTone::CSharp => -0.1,
+            ChromaticTone::DSharp => 0.1,
+            ChromaticTone::FSharp => -0.2,
+            ChromaticTone::GSharp => 0.0,
+            ChromaticTone::ASharp => 0.2,
+        }
+    }
 }
 
 impl Widget for PianoKeys {
@@ -95,6 +115,7 @@ impl Widget for PianoKeys {
             .count();
         let canvas_width = ui.available_width();
         let white_key_width = canvas_width / number_of_white_keys as f32;
+        let black_key_width = white_key_width * self.config.ratio_width_white_to_black_keys;
         let rounding = white_key_width * self.config.ratio_rounding;
         let white_key_height = white_key_width * self.config.white_key_size_ratio;
         let black_key_height = white_key_width * self.config.black_key_size_ratio;
@@ -146,15 +167,15 @@ impl Widget for PianoKeys {
                 } else {
                     self.config.color_black_key
                 };
-                let key = key_number as f32 + 0.5;
+                let key = (key_number + 1) as f32 + note.key_offset();
                 painter.rect_filled(
                     Rect {
                         min: Pos2 {
-                            x: key * white_key_width + 1.0,
+                            x: key * white_key_width - black_key_width * 0.5,
                             y: 50.0,
                         },
                         max: Pos2 {
-                            x: (key + 1.0) * white_key_width - 1.0,
+                            x: key * white_key_width + black_key_width * 0.5,
                             y: 50.0 + black_key_height,
                         },
                     },

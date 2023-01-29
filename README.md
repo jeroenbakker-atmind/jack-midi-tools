@@ -33,6 +33,4 @@ Widget to draw a piano. Has options to use different colors when keys are presse
 ![Piano Keys](resources/egui-piano-keys.png "egui-widgets-music::piano_keys")
 
 Still in development, here is a short list containing improvements.
-- [ ] Use different width for black keys.
-- [ ] Add spacing and offset between black keys.
 - [ ] Reserve layout space in egui.
