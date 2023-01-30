@@ -1,6 +1,5 @@
-use jack::RawMidi;
 use jack_module::{Module, PortDescriptor};
-use midi_events::Event;
+use midi_events::Message;
 
 use crate::{gui::refresh, model::APP_MODEL};
 
@@ -28,10 +27,9 @@ impl Module for MidiLogger {
         )]
     }
 
-    fn handle_midi_in(&self, _port_identifier: &PortIdentifier, midi_event: &RawMidi) {
-        let event = Event::from(midi_event.bytes);
-        APP_MODEL.channels.write().apply_event(&event);
+    fn handle_midi_in(&self, _port_identifier: &PortIdentifier, midi_message: &Message) {
+        APP_MODEL.channels.write().apply_event(&midi_message.event);
         refresh();
-        println!("{:?}", event);
+        println!("{:?}", midi_message.event);
     }
 }

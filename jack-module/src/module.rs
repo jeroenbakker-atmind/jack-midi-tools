@@ -1,4 +1,4 @@
-use jack::RawMidi;
+use midi_events::Message;
 
 use crate::PortDescriptor;
 
@@ -16,6 +16,6 @@ pub trait Module {
     fn handle_midi_in(
         &self,
         port_identifier: &Self::PortDescriptorIdentifierType,
-        midi_event: &RawMidi,
+        midi_message: &Message,
     );
 }

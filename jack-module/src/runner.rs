@@ -1,6 +1,7 @@
 use std::io::stdin;
 
 use jack::{Client, MidiIn, Port, ProcessHandler};
+use midi_events::Message;
 
 use crate::{Module, PortType};
 
@@ -58,7 +59,8 @@ where
         for (port_identifier, port) in &self.midi_in_ports {
             let midi_events = port.iter(process_scope);
             for raw_event in midi_events {
-                self.module.handle_midi_in(port_identifier, &raw_event);
+                let message = Message::from(&raw_event);
+                self.module.handle_midi_in(port_identifier, &message);
             }
         }
         jack::Control::Continue
