@@ -1,6 +1,7 @@
 use egui::{Color32, Pos2, Rect, Rounding, Widget};
 use music_notes::{ChromaticNote, ChromaticTone};
 
+/// Configuration parameters for customizing the piano widget.
 pub struct PianoConfig {
     /// Most left key on the keyboard to draw.
     pub first_key: ChromaticNote,
@@ -278,10 +279,14 @@ impl Widget for PianoKeys {
         let rounding = white_key_width * self.config.ratio_rounding;
         let white_key_height = white_key_width * self.config.white_key_size_ratio;
         let black_key_height = white_key_width * self.config.black_key_size_ratio;
+
+        let response = ui.allocate_response(
+            egui::vec2(canvas_width, white_key_height),
+            egui::Sense::hover(),
+        );
         let painter = ui.painter();
 
         // Draw white keys.
-
         white_keys.iter().for_each(|(key_number, note)| {
             let fill_color = if self.pressed_keys.contains(&note) {
                 self.config.color_white_pressed_key
@@ -293,11 +298,11 @@ impl Widget for PianoKeys {
                 Rect {
                     min: Pos2 {
                         x: key * white_key_width + 1.0,
-                        y: 50.0,
+                        y: response.rect.min.y,
                     },
                     max: Pos2 {
                         x: (key + 1.0) * white_key_width - 1.0,
-                        y: 50.0 + white_key_height,
+                        y: response.rect.min.y + white_key_height,
                     },
                 },
                 Rounding {
@@ -310,6 +315,7 @@ impl Widget for PianoKeys {
             );
         });
 
+        // Draw black keys.
         let key_groups = BlackKeys::groups_from(&white_keys);
         key_groups.iter().for_each(|group| {
             group
@@ -333,11 +339,11 @@ impl Widget for PianoKeys {
                         Rect {
                             min: Pos2 {
                                 x: key * white_key_width - black_key_width * 0.5,
-                                y: 50.0,
+                                y: response.rect.min.y,
                             },
                             max: Pos2 {
                                 x: key * white_key_width + black_key_width * 0.5,
-                                y: 50.0 + black_key_height,
+                                y: response.rect.min.y + black_key_height,
                             },
                         },
                         Rounding {
@@ -351,9 +357,6 @@ impl Widget for PianoKeys {
                 });
         });
 
-        // Dummy label as we need to return a response.
-        // TODO: we should construct a valid response.
-        let response = ui.label("");
         response
     }
 }

@@ -31,6 +31,3 @@ Jack Midi client applications to use for music creation. It started as a hobby p
 Widget to draw a piano. Has options to use different colors when keys are pressed.
 
 ![Piano Keys](resources/egui-piano-keys.png "egui-widgets-music::piano_keys")
-
-Still in development, here is a short list containing improvements.
-- [ ] Reserve layout space in egui.
