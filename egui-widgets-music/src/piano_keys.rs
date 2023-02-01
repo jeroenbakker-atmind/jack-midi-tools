@@ -102,7 +102,12 @@ impl KeyOffset for ToneOffset {
 }
 pub struct NoOffset {}
 impl KeyOffset for NoOffset {
-    fn black_key_offset(&self, _group_size: usize, _group_elem: usize, _tone: ChromaticTone) -> f32 {
+    fn black_key_offset(
+        &self,
+        _group_size: usize,
+        _group_elem: usize,
+        _tone: ChromaticTone,
+    ) -> f32 {
         0.0
     }
 }
@@ -164,10 +169,9 @@ impl PianoKeys {
 }
 
 trait PianoKey {
+    /// Is the given piano key a white key.
     fn is_white_key(&self) -> bool;
-    fn is_black_key(&self) -> bool {
-        !self.is_white_key()
-    }
+    /// Will the given piano key be followed by a black key.
     fn is_followed_by_black_key(&self) -> bool;
 }
 
@@ -209,16 +213,23 @@ impl PianoKey for ChromaticNote {
 /// Helper struct to determine the offset of sequential black keys
 #[derive(Default)]
 struct BlackKeys {
-    pub starting_index: usize,
-    pub starting_white_key: ChromaticNote,
+    /// The group of sequential keys.
     pub black_keys: Vec<ChromaticNote>,
+    /// The white key just before the group of black keys.
+    pub starting_white_key: ChromaticNote,
+    /// Index given to the start_white_key. The index is the index of the white key of the piano being drawn.
+    pub starting_index: usize,
 }
 
 impl BlackKeys {
+    /// Does this group already have some black keys?
+    ///
+    /// Groups without any black keys should not be considered valid groups.
     fn is_empty(&self) -> bool {
         self.black_keys.is_empty()
     }
 
+    /// Generate multiple groups for each set of sequential black keys.
     fn groups_from(white_keys: &[(usize, ChromaticNote)]) -> Vec<BlackKeys> {
         let mut groups = Vec::new();
         let mut current_group = BlackKeys::default();
@@ -254,11 +265,13 @@ impl BlackKeys {
 
 impl Widget for PianoKeys {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        let number_of_white_keys = (i32::from(self.config.first_key)
+        let white_keys: Vec<(usize, ChromaticNote)> = (i32::from(self.config.first_key)
             ..=i32::from(self.config.last_key))
             .map(|i| ChromaticNote::from(i))
-            .filter(|k| k.is_white_key())
-            .count();
+            .filter(|n| n.is_white_key())
+            .enumerate()
+            .collect();
+        let number_of_white_keys = white_keys.len();
         let canvas_width = ui.available_width();
         let white_key_width = canvas_width / number_of_white_keys as f32;
         let black_key_width = white_key_width * self.config.ratio_width_white_to_black_keys;
@@ -268,14 +281,8 @@ impl Widget for PianoKeys {
         let painter = ui.painter();
 
         // Draw white keys.
-        let enumerated_white_keys: Vec<(usize, ChromaticNote)> = (i32::from(self.config.first_key)
-            ..=i32::from(self.config.last_key))
-            .map(|i| ChromaticNote::from(i))
-            .filter(|n| n.is_white_key())
-            .enumerate()
-            .collect();
 
-        enumerated_white_keys.iter().for_each(|(key_number, note)| {
+        white_keys.iter().for_each(|(key_number, note)| {
             let fill_color = if self.pressed_keys.contains(&note) {
                 self.config.color_white_pressed_key
             } else {
@@ -303,7 +310,7 @@ impl Widget for PianoKeys {
             );
         });
 
-        let key_groups = BlackKeys::groups_from(&enumerated_white_keys);
+        let key_groups = BlackKeys::groups_from(&white_keys);
         key_groups.iter().for_each(|group| {
             group
                 .black_keys
