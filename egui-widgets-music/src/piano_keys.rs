@@ -38,20 +38,88 @@ pub struct PianoConfig {
     /// Color to draw black keys that are pressed down.
     pub color_black_pressed_key: Color32,
 
-    /// For each group size the offsets to use for black keys.
+    pub black_key_offsets: BlackKeysOffset,
+}
+
+trait KeyOffset {
+    /// Get the offset to draw a black key based on the group size and the
+    /// item of the group being drawn.
     ///
-    /// Black keys of a piano aren't centered between white keys,
-    /// but depends on the size of sequential black keys as the
-    /// position is optimized for the spacing between the black
-    /// keys.
-    ///
-    /// This option will provide the offsets to use for each group
-    /// size. Eg one sequential black key, two sequential black keys
-    /// and three sequential black keys.
-    ///
-    /// One sequential black key can occur as the first group of keys
-    /// don't need to be have 2 or 3 black keys.
-    pub black_key_offsets: (f32, [f32; 2], [f32; 3]),
+    /// `group_size` needs to be between 1 and 3 (inclusive).
+    /// `elem_index` is zero-based inside the group. Therefore needs to be smaller than `group_size`.
+    fn black_key_offset(&self, group_size: usize, group_elem: usize, tone: ChromaticTone) -> f32;
+}
+
+/// For each group size the offsets to use for black keys.
+///
+/// Black keys of a piano aren't centered between white keys,
+/// but depends on the size of sequential black keys as the
+/// position is optimized for the spacing between the black
+/// keys.
+///
+/// This option will provide the offsets to use for each group
+/// size. Eg one sequential black key, two sequential black keys
+/// and three sequential black keys.
+///
+/// One sequential black key can occur as the first group of keys
+/// don't need to be have 2 or 3 black keys.
+pub struct GroupOffset {
+    pub offsets_group_size_1: f32,
+    pub offsets_group_size_2: [f32; 2],
+    pub offsets_group_size_3: [f32; 3],
+}
+
+impl KeyOffset for GroupOffset {
+    fn black_key_offset(&self, group_size: usize, group_elem: usize, _tone: ChromaticTone) -> f32 {
+        assert!(group_size > 0 && group_size < 4);
+        assert!(group_elem < group_size);
+        match group_size {
+            1 => self.offsets_group_size_1,
+            2 => self.offsets_group_size_2[group_elem],
+            3 => self.offsets_group_size_3[group_elem],
+            _ => unreachable!(),
+        }
+    }
+}
+pub struct ToneOffset {
+    pub offset_csharp: f32,
+    pub offset_dsharp: f32,
+    pub offset_fsharp: f32,
+    pub offset_gsharp: f32,
+    pub offset_asharp: f32,
+}
+impl KeyOffset for ToneOffset {
+    fn black_key_offset(&self, _group_size: usize, _group_elem: usize, tone: ChromaticTone) -> f32 {
+        match tone {
+            ChromaticTone::CSharp => self.offset_csharp,
+            ChromaticTone::DSharp => self.offset_dsharp,
+            ChromaticTone::FSharp => self.offset_fsharp,
+            ChromaticTone::GSharp => self.offset_gsharp,
+            ChromaticTone::ASharp => self.offset_asharp,
+            _ => unreachable!(),
+        }
+    }
+}
+pub struct NoOffset {}
+impl KeyOffset for NoOffset {
+    fn black_key_offset(&self, _group_size: usize, _group_elem: usize, _tone: ChromaticTone) -> f32 {
+        0.0
+    }
+}
+
+pub enum BlackKeysOffset {
+    NoOffset(NoOffset),
+    ToneOffset(ToneOffset),
+    GroupOffset(GroupOffset),
+}
+impl KeyOffset for BlackKeysOffset {
+    fn black_key_offset(&self, group_size: usize, group_elem: usize, tone: ChromaticTone) -> f32 {
+        match self {
+            Self::NoOffset(n) => n.black_key_offset(group_size, group_elem, tone),
+            Self::GroupOffset(n) => n.black_key_offset(group_size, group_elem, tone),
+            Self::ToneOffset(n) => n.black_key_offset(group_size, group_elem, tone),
+        }
+    }
 }
 
 /// Create the default configuration for the piano keys widget.
@@ -70,7 +138,13 @@ impl Default for PianoConfig {
             color_white_key: Color32::WHITE,
             color_white_pressed_key: Color32::GRAY,
             color_black_pressed_key: Color32::DARK_GRAY,
-            black_key_offsets: (0.0, [-0.1, 0.1], [-0.2, 0.0, 0.2]),
+            black_key_offsets: BlackKeysOffset::ToneOffset(ToneOffset {
+                offset_csharp: -0.1,
+                offset_dsharp: 0.1,
+                offset_fsharp: -0.2,
+                offset_gsharp: 0.0,
+                offset_asharp: 0.2,
+            }),
         }
     }
 }
@@ -85,22 +159,6 @@ impl PianoKeys {
         Self {
             config,
             pressed_keys,
-        }
-    }
-
-    /// Get the offset to draw a black key based on the group size and the
-    /// item of the group being drawn.
-    ///
-    /// `group_size` needs to be between 1 and 3 (inclusive).
-    /// `elem_index` is zero-based inside the group. Therefore needs to be smaller than `group_size`.
-    fn black_key_offset(&self, group_size: usize, elem_index: usize) -> f32 {
-        assert!(group_size > 0 && group_size < 4);
-        assert!(elem_index < group_size);
-        match group_size {
-            1 => self.config.black_key_offsets.0,
-            2 => self.config.black_key_offsets.1[elem_index],
-            3 => self.config.black_key_offsets.2[elem_index],
-            _ => 0.0,
         }
     }
 }
@@ -259,7 +317,11 @@ impl Widget for PianoKeys {
                         self.config.color_black_key
                     };
                     let key = (next_white_index + 1) as f32
-                        + self.black_key_offset(group.black_keys.len(), key_in_group_index);
+                        + self.config.black_key_offsets.black_key_offset(
+                            group.black_keys.len(),
+                            key_in_group_index,
+                            black_key.tone,
+                        );
                     painter.rect_filled(
                         Rect {
                             min: Pos2 {
