@@ -6,4 +6,5 @@ members=[
     "jack-module",
     "egui-widgets-music",
     "jack-midi-logger",
+    "jack-midi-transpose",
 ]

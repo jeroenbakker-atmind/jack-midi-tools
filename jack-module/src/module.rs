@@ -18,4 +18,7 @@ pub trait Module {
         port_identifier: &Self::PortDescriptorIdentifierType,
         midi_message: &Message,
     );
+
+    fn handle_midi_out(&self, port_identifier: &Self::PortDescriptorIdentifierType)
+        -> Vec<Message>;
 }

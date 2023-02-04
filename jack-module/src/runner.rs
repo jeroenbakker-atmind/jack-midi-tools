@@ -1,6 +1,6 @@
 use std::io::stdin;
 
-use jack::{Client, MidiIn, Port, ProcessHandler};
+use jack::{Client, MidiIn, MidiOut, Port, ProcessHandler, RawMidi};
 use midi_events::Message;
 
 use crate::{Module, PortType};
@@ -16,6 +16,7 @@ where
     fn run(self, module: T);
 }
 
+#[derive(Debug)]
 pub struct JackModuleContext<T, I>
 where
     T: Module,
@@ -23,6 +24,7 @@ where
 {
     module: T,
     midi_in_ports: Vec<(I, Port<MidiIn>)>,
+    midi_out_ports: Vec<(I, Port<MidiOut>)>,
 }
 
 impl<T, I> JackModuleContext<T, I>
@@ -43,8 +45,21 @@ where
             })
             .collect();
 
+        let midi_out_ports: Vec<(I, Port<MidiOut>)> = module
+            .port_descriptors()
+            .iter()
+            .filter(|pd| pd.is_output() && pd.port_type() == PortType::Midi)
+            .map(|pd| {
+                let port = jack_client
+                    .register_port(pd.name(), MidiOut::default())
+                    .unwrap();
+                (pd.identifier(), port)
+            })
+            .collect();
+
         Self {
             midi_in_ports,
+            midi_out_ports,
             module,
         }
     }
@@ -63,6 +78,17 @@ where
                 self.module.handle_midi_in(port_identifier, &message);
             }
         }
+
+        for (port_identifier, port) in &self.midi_out_ports {
+            let midi_events = self.module.handle_midi_out(port_identifier);
+            for midi_event in midi_events {
+                let raw_event = RawMidi::from(midi_event);
+                /*
+                port.writer(process_scope).write(raw_event).unwrap();
+                */
+            }
+        }
+
         jack::Control::Continue
     }
 }

@@ -32,4 +32,11 @@ impl Module for MidiLogger {
         refresh();
         println!("{:?}", midi_message.event);
     }
+
+    fn handle_midi_out(
+        &self,
+        _port_identifier: &Self::PortDescriptorIdentifierType,
+    ) -> Vec<Message> {
+        unimplemented!()
+    }
 }

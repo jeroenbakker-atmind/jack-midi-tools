@@ -28,6 +28,10 @@ where
         self.is_input
     }
 
+    pub fn is_output(&self) -> bool {
+        !self.is_input()
+    }
+
     pub fn port_type(&self) -> PortType {
         self.port_type
     }

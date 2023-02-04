@@ -11,3 +11,12 @@ impl From<&RawMidi<'_>> for Message {
         }
     }
 }
+
+impl From<Message> for RawMidi<'_> {
+    fn from(value: Message) -> Self {
+        RawMidi {
+            time: 0,
+            bytes: &[0],
+        }
+    }
+}
