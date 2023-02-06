@@ -1,6 +1,6 @@
 use std::io::stdin;
 
-use jack::{Client, MidiIn, MidiOut, Port, ProcessHandler, RawMidi};
+use jack::{Client, MidiIn, MidiOut, Port, ProcessHandler};
 use midi_events::Message;
 
 use crate::{Module, PortType};
@@ -79,13 +79,13 @@ where
             }
         }
 
-        for (port_identifier, port) in &self.midi_out_ports {
-            let midi_events = self.module.handle_midi_out(port_identifier);
+        for port_pair in &mut self.midi_out_ports {
+            let midi_events = self.module.handle_midi_out(&port_pair.0);
             for midi_event in midi_events {
-                let raw_event = RawMidi::from(midi_event);
-                /*
-                port.writer(process_scope).write(raw_event).unwrap();
-                */
+                let mut bytes = Vec::new();
+
+                let raw_event = midi_event.encode_into(&mut bytes);
+                port_pair.1.writer(process_scope).write(&raw_event).unwrap();
             }
         }
 
