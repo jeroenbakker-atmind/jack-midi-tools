@@ -53,7 +53,10 @@ impl Event {
                 r_result.encode_velocity(*velocity);
             }
 
-            _ => unimplemented!(),
+            _ => {
+                println!("{self:#?}");
+                unimplemented!()
+            }
         }
     }
 }
