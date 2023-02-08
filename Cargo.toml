@@ -1,10 +1,15 @@
 [workspace]
 members=[
+    # Core libraries
     "music-notes",
     "midi-events",
     "midi-device",
+
+    # Module libraries.
     "jack-module",
     "egui-widgets-music",
+
+    # Applications.
     "jack-midi-logger",
-    "jack-midi-transpose",
+    "jack-midi-transposer",
 ]

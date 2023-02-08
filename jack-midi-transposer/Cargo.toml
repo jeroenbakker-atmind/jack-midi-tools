@@ -1,5 +1,5 @@
 [package]
-name = "jack-midi-transpose"
+name = "jack-midi-transposer"
 version = "0.1.0"
 edition = "2021"
 
