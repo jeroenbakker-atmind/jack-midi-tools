@@ -3,8 +3,9 @@
 use music_notes::ChromaticNote;
 
 use crate::{
-    Channel, Event, StatusCode, Velocity, CONTROLLER_ALL_NOTES_OFF, STATUS_CONTROLLER,
-    STATUS_NOTE_OFF, STATUS_NOTE_ON,
+    Channel, Event, StatusCode, Velocity, CONTROLLER_ALL_NOTES_OFF, CONTROLLER_CHANNEL_PAN,
+    CONTROLLER_CHANNEL_VOLUME, STATUS_CHANNEL_PRESSURE, STATUS_CONTROLLER, STATUS_NOTE_OFF,
+    STATUS_NOTE_ON, STATUS_PROGRAM_CHANGE,
 };
 
 trait MidiEventEncoder {
@@ -26,6 +27,19 @@ trait MidiEventEncoder {
 
     fn encode_velocity(&mut self, velocity: Velocity) {
         self.write_byte(velocity);
+    }
+
+    fn encode_controller_with_value(&mut self, controller: u8, value: u8) {
+        self.encode_controller(controller);
+        self.encode_value(value);
+    }
+
+    fn encode_controller(&mut self, controller: u8) {
+        self.write_byte(controller);
+    }
+
+    fn encode_value(&mut self, value: Velocity) {
+        self.write_byte(value);
     }
 
     fn write_byte(&mut self, byte: u8);
@@ -52,7 +66,28 @@ impl Event {
                 r_result.encode_note(*note);
                 r_result.encode_velocity(*velocity);
             }
-
+            Self::ChannelPan(channel, value) => {
+                r_result.encode_status_and_channel(STATUS_CONTROLLER, *channel);
+                r_result.encode_controller_with_value(CONTROLLER_CHANNEL_PAN, *value);
+            }
+            Self::ChannelVolume(channel, volume) => {
+                r_result.encode_status_and_channel(STATUS_CONTROLLER, *channel);
+                r_result.encode_controller_with_value(CONTROLLER_CHANNEL_VOLUME, *volume);
+            }
+            Self::KeyPressure(channel, note, pressure) => {
+                r_result.encode_status_and_channel(STATUS_CHANNEL_PRESSURE, *channel);
+                r_result.encode_note(*note);
+                r_result.encode_value(*pressure);
+            }
+            Self::ProgramChange(channel, program) => {
+                r_result.encode_status_and_channel(STATUS_PROGRAM_CHANGE, *channel);
+                r_result.encode_value(*program);
+            }
+            Self::Controller(channel, value1, value2) => {
+                r_result.encode_status_and_channel(STATUS_CONTROLLER, *channel);
+                r_result.encode_value(*value1);
+                r_result.encode_value(*value2);
+            }
             _ => {
                 println!("{self:#?}");
                 unimplemented!()
