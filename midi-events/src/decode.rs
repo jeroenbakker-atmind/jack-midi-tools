@@ -2,9 +2,10 @@
 use music_notes::{ChromaticNote, ChromaticScale, Scale};
 
 use crate::{
-    Channel, Event, StatusCode, Value, Velocity, CONTROLLER_ALL_NOTES_OFF, CONTROLLER_CHANNEL_PAN,
-    CONTROLLER_CHANNEL_VOLUME, STATUS_CONTROLLER, STATUS_KEY_PRESSURE, STATUS_NOTE_OFF,
-    STATUS_NOTE_ON, STATUS_PROGRAM_CHANGE, STATUS_SYSTEM_EXCLUSIVE,
+    Channel, Event, Modulation, StatusCode, Value, Velocity, CONTROLLER_ALL_NOTES_OFF,
+    CONTROLLER_CHANNEL_PAN, CONTROLLER_CHANNEL_VOLUME, STATUS_CONTROLLER, STATUS_KEY_PRESSURE,
+    STATUS_MODULATION_WHEEL, STATUS_NOTE_OFF, STATUS_NOTE_ON, STATUS_PROGRAM_CHANGE,
+    STATUS_SYSTEM_EXCLUSIVE,
 };
 
 fn decode_status_and_channel(midi_message: &[u8], index: &mut usize) -> (StatusCode, Channel) {
@@ -41,6 +42,11 @@ fn decode_velocity(midi_message: &[u8], index: &mut usize) -> Velocity {
     velocity
 }
 
+fn decode_modulation(midi_message: &[u8], index: &mut usize) -> Modulation {
+    let (value1, value2) = decode_two_values(midi_message, index);
+    let modulation = ((value1 as u16) << 7) + value2 as u16;
+    modulation
+}
 fn decode_value(midi_message: &[u8], index: &mut usize) -> Value {
     let value = midi_message[*index];
     *index += 1;
@@ -72,6 +78,9 @@ fn decode_midi_event(midi_message: &[u8]) -> Event {
             decode_note(midi_message, &mut index),
             decode_velocity(midi_message, &mut index),
         ),
+        STATUS_MODULATION_WHEEL => {
+            Event::ModulationWheel(channel, decode_modulation(midi_message, &mut index))
+        }
         STATUS_CONTROLLER => {
             let (value_1, value_2) = decode_two_values(midi_message, &mut index);
             match value_1 {

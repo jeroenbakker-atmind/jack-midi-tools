@@ -20,6 +20,7 @@ pub enum Event {
 
     KeyPressure(Channel, ChromaticNote, Pressure),
     ProgramChange(Channel, Program),
+    ModulationWheel(Channel, Modulation),
 
     Controller(Channel, u8, u8),
     ChannelPan(Channel, Value),
@@ -33,6 +34,7 @@ pub type StatusCode = u8;
 pub type Value = u8;
 pub type Channel = Value;
 pub type Velocity = Value;
+pub type Modulation = u16;
 pub type Pressure = Value;
 pub type Program = Value;
 pub type Ticks = usize;

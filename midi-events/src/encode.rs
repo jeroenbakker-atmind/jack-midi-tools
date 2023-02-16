@@ -3,9 +3,9 @@
 use music_notes::ChromaticNote;
 
 use crate::{
-    Channel, Event, StatusCode, Velocity, CONTROLLER_ALL_NOTES_OFF, CONTROLLER_CHANNEL_PAN,
-    CONTROLLER_CHANNEL_VOLUME, STATUS_CHANNEL_PRESSURE, STATUS_CONTROLLER, STATUS_NOTE_OFF,
-    STATUS_NOTE_ON, STATUS_PROGRAM_CHANGE,
+    Channel, Event, Modulation, StatusCode, Velocity, CONTROLLER_ALL_NOTES_OFF,
+    CONTROLLER_CHANNEL_PAN, CONTROLLER_CHANNEL_VOLUME, STATUS_CHANNEL_PRESSURE, STATUS_CONTROLLER,
+    STATUS_MODULATION_WHEEL, STATUS_NOTE_OFF, STATUS_NOTE_ON, STATUS_PROGRAM_CHANGE,
 };
 
 trait MidiEventEncoder {
@@ -42,6 +42,13 @@ trait MidiEventEncoder {
         self.write_byte(value);
     }
 
+    fn encode_modulation(&mut self, modulation: Modulation) {
+        let byte2 = (modulation & 0b01111111) as u8;
+        let byte1 = (modulation >> 7) as u8;
+        self.write_byte(byte1);
+        self.write_byte(byte2);
+    }
+
     fn write_byte(&mut self, byte: u8);
 }
 impl MidiEventEncoder for Vec<u8> {
@@ -55,6 +62,7 @@ impl Event {
         match self {
             Self::AllNotesOff(channel) => {
                 r_result.encode_controller_channel(*channel, CONTROLLER_ALL_NOTES_OFF);
+                r_result.encode_value(0);
             }
             Self::NoteOn(channel, note, velocity) => {
                 r_result.encode_status_and_channel(STATUS_NOTE_ON, *channel);
@@ -88,6 +96,11 @@ impl Event {
                 r_result.encode_value(*value1);
                 r_result.encode_value(*value2);
             }
+            Self::ModulationWheel(channel, modulation) => {
+                r_result.encode_status_and_channel(STATUS_MODULATION_WHEEL, *channel);
+                r_result.encode_modulation(*modulation);
+            }
+
             _ => {
                 println!("{self:#?}");
                 unimplemented!()
