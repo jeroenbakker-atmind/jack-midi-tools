@@ -21,7 +21,7 @@ pub fn main() {
 
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "Jack Midi Logger",
+        "Jack Midi Transposer",
         native_options,
         Box::new(|cc| Box::new(Gui::new(cc))),
     );
