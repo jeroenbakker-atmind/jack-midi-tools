@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members=[
     # Core libraries
     "music-notes",
@@ -12,4 +13,5 @@ members=[
     # Applications.
     "jack-midi-logger",
     "jack-midi-transposer",
+    "demo-test",
 ]
