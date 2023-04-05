@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
+use wgpu::{ComputePassDescriptor, PipelineLayoutDescriptor};
 use winit::{
     event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    window::Window,
+    window::{Fullscreen, Window},
 };
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
@@ -43,6 +44,11 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
     });
 
+    let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Compute Shader"),
+        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("compute.wgsl"))),
+    });
+
     let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: None,
         bind_group_layouts: &[],
@@ -51,6 +57,22 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     let swapchain_capabilities = surface.get_capabilities(&adapter);
     let swapchain_format = swapchain_capabilities.formats[0];
+
+    let compute_pipeline_layout_descriptor = PipelineLayoutDescriptor {
+        label: Some("Compute pipeline layout descriptor"),
+        bind_group_layouts: &[],
+        push_constant_ranges: &[],
+    };
+    let compute_pipeline_layout =
+        device.create_pipeline_layout(&compute_pipeline_layout_descriptor);
+
+    let compute_pipeline_descriptor = wgpu::ComputePipelineDescriptor {
+        label: Some("Compute Pipeline Descriptor"),
+        layout: Some(&compute_pipeline_layout),
+        module: &compute_shader,
+        entry_point: "compute_main",
+    };
+    let compute_pipeline = device.create_compute_pipeline(&compute_pipeline_descriptor);
 
     let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: None,
@@ -119,14 +141,23 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                             view: &view,
                             resolve_target: None,
                             ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                                load: wgpu::LoadOp::Load,
                                 store: true,
                             },
                         })],
                         depth_stencil_attachment: None,
                     });
+
                     rpass.set_pipeline(&render_pipeline);
                     rpass.draw(0..3, 0..1);
+                }
+
+                {
+                    let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
+                        label: Some("Compute pass"),
+                    });
+                    compute_pass.set_pipeline(&compute_pipeline);
+                    compute_pass.dispatch_workgroups(1, 1, 1);
                 }
 
                 queue.submit(Some(encoder.finish()));
@@ -144,5 +175,6 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 fn main() {
     let event_loop = EventLoop::new();
     let window = Window::new(&event_loop).unwrap();
+    //window.set_fullscreen(Some(Fullscreen::Borderless(None)));
     pollster::block_on(run(event_loop, window));
 }
