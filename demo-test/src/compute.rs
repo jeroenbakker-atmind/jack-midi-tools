@@ -2,12 +2,17 @@ use std::borrow::Cow;
 
 use wgpu::{
     BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingResource, BindingType, CommandEncoder, ComputePassDescriptor, Device,
-    PipelineLayoutDescriptor, ShaderSource, ShaderStages, StorageTextureAccess, TextureFormat,
-    TextureViewDimension,
+    BindingResource, BindingType, CommandEncoder, ComputePassDescriptor, ComputePipeline, Device,
+    PipelineLayoutDescriptor, ShaderModule, ShaderSource, ShaderStages, StorageTextureAccess,
+    TextureFormat, TextureViewDimension,
 };
 
-use crate::context::{Compute, Context};
+use crate::context::Context;
+
+pub struct Compute {
+    pub shader: ShaderModule,
+    pub pipeline: ComputePipeline,
+}
 
 pub fn init_compute(device: &Device) -> Compute {
     let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {

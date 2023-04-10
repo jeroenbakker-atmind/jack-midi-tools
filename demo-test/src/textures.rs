@@ -1,7 +1,10 @@
-use wgpu::{Device, Extent3d, TextureDescriptor, TextureFormat, TextureViewDescriptor};
+use wgpu::{Device, Extent3d, TextureDescriptor, TextureFormat, TextureViewDescriptor, Texture, TextureView};
 use winit::dpi::PhysicalSize;
 
-use crate::context::Textures;
+pub struct Textures {
+    pub output_texture: Texture,
+    pub output_texture_view: TextureView,
+}
 
 pub fn init_textures(device: &Device, size: PhysicalSize<u32>) -> Textures {
     let texture_size = Extent3d {
