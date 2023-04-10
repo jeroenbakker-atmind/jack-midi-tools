@@ -13,6 +13,8 @@ use winit::{
     window::Window,
 };
 
+mod context;
+
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();
 
@@ -96,7 +98,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         sample_count: 1,
         dimension: wgpu::TextureDimension::D2,
         format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::STORAGE_BINDING,
+        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING,
         view_formats: &[TextureFormat::Rgba8Unorm],
     });
 
@@ -123,12 +125,24 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     };
     let render_bind_group_layout_descriptor = BindGroupLayoutDescriptor {
         label: Some("texture bind group layout"),
-        entries: &[BindGroupLayoutEntry {
-            binding: 0,
-            visibility: ShaderStages::FRAGMENT,
-            ty: BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-            count: None,
-        }],
+        entries: &[
+            BindGroupLayoutEntry {
+                binding: 0,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            BindGroupLayoutEntry {
+                binding: 1,
+                visibility: ShaderStages::FRAGMENT,
+                ty: BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                count: None,
+            },
+        ],
     };
     let render_bind_group_layout =
         device.create_bind_group_layout(&render_bind_group_layout_descriptor);
@@ -201,7 +215,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                     });
                     compute_pass.set_pipeline(&compute_pipeline);
                     compute_pass.set_bind_group(0, &texture_bind_group, &[]);
-                    compute_pass.dispatch_workgroups(size.width / 16, size.height / 16, 0);
+                    compute_pass.dispatch_workgroups(size.width / 16, size.height / 16, 1);
                 }
                 let sampler_description = SamplerDescriptor {
                     ..Default::default()
@@ -210,10 +224,16 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 let texture_bind_group_descriptor = BindGroupDescriptor {
                     label: Some("Texture bind group"),
                     layout: &render_pipeline.get_bind_group_layout(0),
-                    entries: &[BindGroupEntry {
-                        binding: 0,
-                        resource: BindingResource::Sampler(&sampler),
-                    }],
+                    entries: &[
+                        BindGroupEntry {
+                            binding: 0,
+                            resource: BindingResource::TextureView(&output_texture_view),
+                        },
+                        BindGroupEntry {
+                            binding: 1,
+                            resource: BindingResource::Sampler(&sampler),
+                        },
+                    ],
                 };
 
                 let texture_bind_group = device.create_bind_group(&texture_bind_group_descriptor);
