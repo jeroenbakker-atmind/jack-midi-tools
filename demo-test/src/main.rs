@@ -1,10 +1,11 @@
-use std::{borrow::Cow, num::NonZeroU32};
+use std::borrow::Cow;
 
 use wgpu::{
     BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingResource, BindingType, ComputePassDescriptor, Extent3d, PipelineLayoutDescriptor,
+    BindingResource, BindingType, ComputePassDescriptor, Extent3d, FragmentState,
+    PipelineLayoutDescriptor, RenderPipelineDescriptor, SamplerDescriptor, ShaderSource,
     ShaderStages, StorageTextureAccess, TextureDescriptor, TextureFormat, TextureViewDescriptor,
-    TextureViewDimension,
+    TextureViewDimension, VertexState,
 };
 use winit::{
     event::{Event, WindowEvent},
@@ -35,8 +36,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 label: None,
                 features: wgpu::Features::empty(),
                 // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
-                limits: wgpu::Limits::downlevel_webgl2_defaults()
-                    .using_resolution(adapter.limits()),
+                limits: wgpu::Limits::default().using_resolution(adapter.limits()),
             },
             None,
         )
@@ -63,7 +63,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 format: TextureFormat::Rgba8Unorm,
                 view_dimension: TextureViewDimension::D2,
             },
-            count: Some(NonZeroU32::new(1).unwrap()),
+            count: None,
         }],
     };
     let bind_group_layout = device.create_bind_group_layout(&bind_group_layout_descriptor);
@@ -84,8 +84,8 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     };
     let compute_pipeline = device.create_compute_pipeline(&compute_pipeline_descriptor);
     let texture_size = Extent3d {
-        width: 1024,
-        height: 768,
+        width: size.width,
+        height: size.height,
         depth_or_array_layers: 1,
     };
 
@@ -101,17 +101,6 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     });
 
     let output_texture_view = output_texture.create_view(&TextureViewDescriptor::default());
-    let texture_bind_group_descriptor = BindGroupDescriptor {
-        label: Some("Texture bind group"),
-        layout: &compute_pipeline.get_bind_group_layout(0),
-        entries: &[BindGroupEntry {
-            binding: 0,
-            resource: BindingResource::TextureView(&output_texture_view),
-        }],
-    };
-
-    let texture_bind_group = device.create_bind_group(&texture_bind_group_descriptor);
-
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format: swapchain_format,
@@ -121,6 +110,49 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         alpha_mode: swapchain_capabilities.alpha_modes[0],
         view_formats: vec![],
     };
+
+    /* Render pipeline (result to screen) */
+    let render_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("Copy result to screen shader"),
+        source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+    });
+    let vertex_state = VertexState {
+        module: &render_shader,
+        entry_point: "vertex_main",
+        buffers: &[],
+    };
+    let render_bind_group_layout_descriptor = BindGroupLayoutDescriptor {
+        label: Some("texture bind group layout"),
+        entries: &[BindGroupLayoutEntry {
+            binding: 0,
+            visibility: ShaderStages::FRAGMENT,
+            ty: BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+            count: None,
+        }],
+    };
+    let render_bind_group_layout =
+        device.create_bind_group_layout(&render_bind_group_layout_descriptor);
+    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: None,
+        bind_group_layouts: &[&render_bind_group_layout],
+        push_constant_ranges: &[],
+    });
+    let fragment_state = FragmentState {
+        module: &render_shader,
+        entry_point: "fragment_main",
+        targets: &[Some(swapchain_format.into())],
+    };
+    let render_pipeline_descriptor = RenderPipelineDescriptor {
+        label: Some("Render Pipeline Descriptor"),
+        layout: Some(&render_pipeline_layout),
+        vertex: vertex_state,
+        fragment: Some(fragment_state),
+        primitive: wgpu::PrimitiveState::default(),
+        depth_stencil: None,
+        multisample: wgpu::MultisampleState::default(),
+        multiview: None,
+    };
+    let render_pipeline = device.create_render_pipeline(&render_pipeline_descriptor);
 
     surface.configure(&device, &config);
 
@@ -147,13 +179,44 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 let frame = surface
                     .get_current_texture()
                     .expect("Failed to acquire next swap chain texture");
-                /*
                 let view = frame.texture.create_view(&TextureViewDescriptor::default());
-                */
 
-                let mut encoder =
-                    device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-                /*
+                let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("encoder"),
+                });
+
+                let texture_bind_group_descriptor = BindGroupDescriptor {
+                    label: Some("Texture bind group"),
+                    layout: &compute_pipeline.get_bind_group_layout(0),
+                    entries: &[BindGroupEntry {
+                        binding: 0,
+                        resource: BindingResource::TextureView(&output_texture_view),
+                    }],
+                };
+
+                let texture_bind_group = device.create_bind_group(&texture_bind_group_descriptor);
+                {
+                    let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
+                        label: Some("Compute pass"),
+                    });
+                    compute_pass.set_pipeline(&compute_pipeline);
+                    compute_pass.set_bind_group(0, &texture_bind_group, &[]);
+                    compute_pass.dispatch_workgroups(size.width / 16, size.height / 16, 0);
+                }
+                let sampler_description = SamplerDescriptor {
+                    ..Default::default()
+                };
+                let sampler = device.create_sampler(&sampler_description);
+                let texture_bind_group_descriptor = BindGroupDescriptor {
+                    label: Some("Texture bind group"),
+                    layout: &render_pipeline.get_bind_group_layout(0),
+                    entries: &[BindGroupEntry {
+                        binding: 0,
+                        resource: BindingResource::Sampler(&sampler),
+                    }],
+                };
+
+                let texture_bind_group = device.create_bind_group(&texture_bind_group_descriptor);
                 {
                     let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: None,
@@ -169,16 +232,8 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                     });
 
                     rpass.set_pipeline(&render_pipeline);
+                    rpass.set_bind_group(0, &texture_bind_group, &[]);
                     rpass.draw(0..3, 0..1);
-                }*/
-
-                {
-                    let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
-                        label: Some("Compute pass"),
-                    });
-                    compute_pass.set_pipeline(&compute_pipeline);
-                    compute_pass.set_bind_group(0, &texture_bind_group, &[]);
-                    compute_pass.dispatch_workgroups(1024 / 16, 768 / 16, 0);
                 }
 
                 queue.submit(Some(encoder.finish()));
