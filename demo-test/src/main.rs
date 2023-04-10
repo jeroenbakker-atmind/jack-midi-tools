@@ -1,12 +1,10 @@
-use std::borrow::Cow;
-
+use composite::{draw_composite, init_composite};
 use compute::{dispatch_compute, init_compute};
 use context::Context;
 use textures::init_textures;
 use wgpu::{
-    BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingResource, BindingType, FragmentState, RenderPipelineDescriptor, SamplerDescriptor,
-    ShaderSource, ShaderStages, TextureViewDescriptor, TextureViewDimension, VertexState,
+    DeviceDescriptor, Features, Instance, Limits, PowerPreference, PresentMode,
+    RequestAdapterOptions, SurfaceConfiguration, TextureUsages, TextureViewDescriptor,
 };
 use winit::{
     event::{Event, WindowEvent},
@@ -14,6 +12,7 @@ use winit::{
     window::Window,
 };
 
+mod composite;
 mod compute;
 mod context;
 mod textures;
@@ -21,12 +20,12 @@ mod textures;
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();
 
-    let instance = wgpu::Instance::default();
+    let instance = Instance::default();
 
     let surface = unsafe { instance.create_surface(&window) }.unwrap();
     let adapter = instance
-        .request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
+        .request_adapter(&RequestAdapterOptions {
+            power_preference: PowerPreference::default(),
             force_fallback_adapter: false,
             // Request an adapter which can render to our surface
             compatible_surface: Some(&surface),
@@ -37,11 +36,11 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     // Create the logical device and command queue
     let (device, queue) = adapter
         .request_device(
-            &wgpu::DeviceDescriptor {
+            &DeviceDescriptor {
                 label: None,
-                features: wgpu::Features::empty(),
+                features: Features::empty(),
                 // Make sure we use the texture resolution limits from the adapter, so we can support images the size of the swapchain.
-                limits: wgpu::Limits::default().using_resolution(adapter.limits()),
+                limits: Limits::default().using_resolution(adapter.limits()),
             },
             None,
         )
@@ -54,73 +53,22 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
 
     let textures = init_textures(&device, size);
     let compute = init_compute(&device);
-    let context = Context { textures, compute };
+    let composite = init_composite(&device, &swapchain_format);
+    let context = Context {
+        textures,
+        compute,
+        composite,
+    };
 
-    let mut config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+    let mut config = SurfaceConfiguration {
+        usage: TextureUsages::RENDER_ATTACHMENT,
         format: swapchain_format,
         width: size.width,
         height: size.height,
-        present_mode: wgpu::PresentMode::Fifo,
+        present_mode: PresentMode::Fifo,
         alpha_mode: swapchain_capabilities.alpha_modes[0],
         view_formats: vec![],
     };
-
-    /* Render pipeline (result to screen) */
-    let render_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Copy result to screen shader"),
-        source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
-    });
-    let vertex_state = VertexState {
-        module: &render_shader,
-        entry_point: "vertex_main",
-        buffers: &[],
-    };
-    let render_bind_group_layout_descriptor = BindGroupLayoutDescriptor {
-        label: Some("texture bind group layout"),
-        entries: &[
-            BindGroupLayoutEntry {
-                binding: 0,
-                visibility: ShaderStages::FRAGMENT,
-                ty: BindingType::Texture {
-                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
-                    view_dimension: TextureViewDimension::D2,
-                    multisampled: false,
-                },
-                count: None,
-            },
-            BindGroupLayoutEntry {
-                binding: 1,
-                visibility: ShaderStages::FRAGMENT,
-                ty: BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
-                count: None,
-            },
-        ],
-    };
-    let render_bind_group_layout =
-        device.create_bind_group_layout(&render_bind_group_layout_descriptor);
-    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-        label: None,
-        bind_group_layouts: &[&render_bind_group_layout],
-        push_constant_ranges: &[],
-    });
-    let fragment_state = FragmentState {
-        module: &render_shader,
-        entry_point: "fragment_main",
-        targets: &[Some(swapchain_format.into())],
-    };
-    let render_pipeline_descriptor = RenderPipelineDescriptor {
-        label: Some("Render Pipeline Descriptor"),
-        layout: Some(&render_pipeline_layout),
-        vertex: vertex_state,
-        fragment: Some(fragment_state),
-        primitive: wgpu::PrimitiveState::default(),
-        depth_stencil: None,
-        multisample: wgpu::MultisampleState::default(),
-        multiview: None,
-    };
-    let render_pipeline = device.create_render_pipeline(&render_pipeline_descriptor);
-
     surface.configure(&device, &config);
 
     event_loop.run(move |event, _, control_flow| {
@@ -153,47 +101,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                 });
 
                 dispatch_compute(&device, &mut encoder, &context);
-
-                let sampler_description = SamplerDescriptor {
-                    ..Default::default()
-                };
-                let sampler = device.create_sampler(&sampler_description);
-                let texture_bind_group_descriptor = BindGroupDescriptor {
-                    label: Some("Texture bind group"),
-                    layout: &render_pipeline.get_bind_group_layout(0),
-                    entries: &[
-                        BindGroupEntry {
-                            binding: 0,
-                            resource: BindingResource::TextureView(
-                                &context.textures.output_texture_view,
-                            ),
-                        },
-                        BindGroupEntry {
-                            binding: 1,
-                            resource: BindingResource::Sampler(&sampler),
-                        },
-                    ],
-                };
-
-                let texture_bind_group = device.create_bind_group(&texture_bind_group_descriptor);
-                {
-                    let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: None,
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                    });
-
-                    rpass.set_pipeline(&render_pipeline);
-                    rpass.set_bind_group(0, &texture_bind_group, &[]);
-                    rpass.draw(0..3, 0..1);
-                }
+                draw_composite(&device, &mut encoder, &context, &view);
 
                 queue.submit(Some(encoder.finish()));
                 frame.present();

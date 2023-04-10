@@ -1,6 +1,9 @@
-use crate::{compute::Compute, textures::Textures};
+use crate::{composite::Composite, compute::Compute, textures::Textures};
 
 pub struct Context {
-    pub compute: Compute,
     pub textures: Textures,
+
+    pub compute: Compute,
+
+    pub composite: Composite,
 }
