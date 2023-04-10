@@ -1,11 +1,12 @@
 use std::borrow::Cow;
 
+use compute::{dispatch_compute, init_compute};
+use context::Context;
+use textures::init_textures;
 use wgpu::{
     BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    BindingResource, BindingType, ComputePassDescriptor, Extent3d, FragmentState,
-    PipelineLayoutDescriptor, RenderPipelineDescriptor, SamplerDescriptor, ShaderSource,
-    ShaderStages, StorageTextureAccess, TextureDescriptor, TextureFormat, TextureViewDescriptor,
-    TextureViewDimension, VertexState,
+    BindingResource, BindingType, FragmentState, RenderPipelineDescriptor, SamplerDescriptor,
+    ShaderSource, ShaderStages, TextureViewDescriptor, TextureViewDimension, VertexState,
 };
 use winit::{
     event::{Event, WindowEvent},
@@ -13,7 +14,9 @@ use winit::{
     window::Window,
 };
 
+mod compute;
 mod context;
+mod textures;
 
 async fn run(event_loop: EventLoop<()>, window: Window) {
     let size = window.inner_size();
@@ -49,60 +52,10 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
     let swapchain_format = swapchain_capabilities.formats[0];
     // Load the shaders from disk
 
-    let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Compute Shader"),
-        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("compute.wgsl"))),
-    });
+    let textures = init_textures(&device, size);
+    let compute = init_compute(&device);
+    let context = Context { textures, compute };
 
-    let bind_group_layout_descriptor = BindGroupLayoutDescriptor {
-        label: Some("texture bind group layout"),
-        entries: &[BindGroupLayoutEntry {
-            binding: 0,
-            visibility: ShaderStages::COMPUTE,
-
-            ty: BindingType::StorageTexture {
-                access: StorageTextureAccess::WriteOnly,
-                format: TextureFormat::Rgba8Unorm,
-                view_dimension: TextureViewDimension::D2,
-            },
-            count: None,
-        }],
-    };
-    let bind_group_layout = device.create_bind_group_layout(&bind_group_layout_descriptor);
-
-    let compute_pipeline_layout_descriptor = PipelineLayoutDescriptor {
-        label: Some("Compute pipeline layout descriptor"),
-        bind_group_layouts: &[&bind_group_layout],
-        push_constant_ranges: &[],
-    };
-    let compute_pipeline_layout =
-        device.create_pipeline_layout(&compute_pipeline_layout_descriptor);
-
-    let compute_pipeline_descriptor = wgpu::ComputePipelineDescriptor {
-        label: Some("Compute Pipeline Descriptor"),
-        layout: Some(&compute_pipeline_layout),
-        module: &compute_shader,
-        entry_point: "compute_main",
-    };
-    let compute_pipeline = device.create_compute_pipeline(&compute_pipeline_descriptor);
-    let texture_size = Extent3d {
-        width: size.width,
-        height: size.height,
-        depth_or_array_layers: 1,
-    };
-
-    let output_texture = device.create_texture(&TextureDescriptor {
-        label: Some("output texture"),
-        size: texture_size,
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::STORAGE_BINDING,
-        view_formats: &[TextureFormat::Rgba8Unorm],
-    });
-
-    let output_texture_view = output_texture.create_view(&TextureViewDescriptor::default());
     let mut config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         format: swapchain_format,
@@ -199,24 +152,8 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                     label: Some("encoder"),
                 });
 
-                let texture_bind_group_descriptor = BindGroupDescriptor {
-                    label: Some("Texture bind group"),
-                    layout: &compute_pipeline.get_bind_group_layout(0),
-                    entries: &[BindGroupEntry {
-                        binding: 0,
-                        resource: BindingResource::TextureView(&output_texture_view),
-                    }],
-                };
+                dispatch_compute(&device, &mut encoder, &context);
 
-                let texture_bind_group = device.create_bind_group(&texture_bind_group_descriptor);
-                {
-                    let mut compute_pass = encoder.begin_compute_pass(&ComputePassDescriptor {
-                        label: Some("Compute pass"),
-                    });
-                    compute_pass.set_pipeline(&compute_pipeline);
-                    compute_pass.set_bind_group(0, &texture_bind_group, &[]);
-                    compute_pass.dispatch_workgroups(size.width / 16, size.height / 16, 1);
-                }
                 let sampler_description = SamplerDescriptor {
                     ..Default::default()
                 };
@@ -227,7 +164,9 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
                     entries: &[
                         BindGroupEntry {
                             binding: 0,
-                            resource: BindingResource::TextureView(&output_texture_view),
+                            resource: BindingResource::TextureView(
+                                &context.textures.output_texture_view,
+                            ),
                         },
                         BindGroupEntry {
                             binding: 1,
