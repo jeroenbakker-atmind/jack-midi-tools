@@ -1,10 +1,11 @@
 use std::borrow::Cow;
 
+use naga::{FastHashMap, ShaderStage};
 use wgpu::{
     BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingResource, BindingType, CommandEncoder, ComputePassDescriptor, ComputePipeline, Device,
-    PipelineLayoutDescriptor, ShaderModule, ShaderSource, ShaderStages, StorageTextureAccess,
-    TextureFormat, TextureViewDimension,
+    PipelineLayoutDescriptor, ShaderModule, ShaderModuleDescriptor, ShaderSource, ShaderStages,
+    StorageTextureAccess, TextureFormat, TextureViewDimension,
 };
 
 use crate::context::Context;
@@ -15,8 +16,15 @@ pub struct Compute {
 }
 
 pub fn init_compute(device: &Device) -> Compute {
-    let compute_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+    let compute_shader = device.create_shader_module(ShaderModuleDescriptor {
         label: Some("Compute Shader"),
+        /*
+        source: ShaderSource::Glsl {
+            shader: Cow::Borrowed(include_str!("compute.glsl")),
+            stage: ShaderStage::Compute,
+            defines: FastHashMap::default(),
+        },
+        */
         source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("compute.wgsl"))),
     });
 
