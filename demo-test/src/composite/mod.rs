@@ -18,7 +18,7 @@ pub struct Composite {
 pub fn init_composite(device: &Device, swapchain_format: &TextureFormat) -> Composite {
     let render_shader = device.create_shader_module(ShaderModuleDescriptor {
         label: Some("Copy result to screen shader"),
-        source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("shader.wgsl"))),
+        source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("composite.wgsl"))),
     });
     let vertex_state = VertexState {
         module: &render_shader,
