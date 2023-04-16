@@ -1,15 +1,14 @@
+#version 450 core
 
-@group(0) @binding(0) var output_texture : texture_storage_2d<rgba8unorm, write>;
+uniform layout(binding = 0, rgba8) writeonly image2D texture_output;
 
-@compute @workgroup_size(16, 16)
-fn compute_main(@builtin(global_invocation_id) global_id : vec3<u32>,) {
-    let dimensions = textureDimensions(output_texture);
-    let coords = vec2<i32>(global_id.xy);
+layout(local_size_x = 16, local_size_y = 16) in;
 
-    if(coords.x >= dimensions.x || coords.y >= dimensions.y) {
+void main() {
+    uvec2 coordinate = uvec2(gl_GlobalInvocationID.xy);
+    uvec2 image_size = imageSize(texture_output);
+
+    if (coordinate.x >= image_size.x || coordinate.y >= image_size.y) {
         return;
     }
-
-    let color = vec4(1.0, 0.5, 0.0, 1.0);
-    textureStore(output_texture, coords.xy, color);
 }

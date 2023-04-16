@@ -16,16 +16,18 @@ pub struct Compute {
 }
 
 pub fn init_compute(device: &Device) -> Compute {
+    #[cfg(feature = "glsl")]
+    let shader_source = ShaderSource::Glsl {
+        shader: Cow::Borrowed(include_str!("compute.glsl")),
+        stage: ShaderStage::Compute,
+        defines: FastHashMap::default(),
+    };
+    #[cfg(feature = "wgsl")]
+    let shader_source = ShaderSource::Wgsl(Cow::Borrowed(include_str!("compute.wgsl")));
+
     let compute_shader = device.create_shader_module(ShaderModuleDescriptor {
         label: Some("Compute Shader"),
-        /*
-        source: ShaderSource::Glsl {
-            shader: Cow::Borrowed(include_str!("compute.glsl")),
-            stage: ShaderStage::Compute,
-            defines: FastHashMap::default(),
-        },
-        */
-        source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("compute.wgsl"))),
+        source: shader_source,
     });
 
     let bind_group_layout_descriptor = BindGroupLayoutDescriptor {
@@ -56,7 +58,7 @@ pub fn init_compute(device: &Device) -> Compute {
         label: Some("Compute Pipeline Descriptor"),
         layout: Some(&compute_pipeline_layout),
         module: &compute_shader,
-        entry_point: "compute_main",
+        entry_point: "main",
     };
     let compute_pipeline = device.create_compute_pipeline(&compute_pipeline_descriptor);
 
