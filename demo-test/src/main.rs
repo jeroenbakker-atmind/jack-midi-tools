@@ -65,7 +65,7 @@ async fn run(event_loop: EventLoop<()>, window: Window) {
         format: swapchain_format,
         width: size.width,
         height: size.height,
-        present_mode: PresentMode::Mailbox,
+        present_mode: PresentMode::Fifo,
         alpha_mode: swapchain_capabilities.alpha_modes[0],
         view_formats: vec![],
     };
