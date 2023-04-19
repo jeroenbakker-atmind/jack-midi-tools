@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use naga::FastHashMap;
 use wgpu::{
     BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     BindingResource, BindingType, CommandEncoder, Device, FragmentState, RenderPipeline,
@@ -11,20 +12,44 @@ use wgpu::{
 use crate::context::Context;
 
 pub struct Composite {
-    pub shader: ShaderModule,
+    pub vertex_shader: ShaderModule,
+    pub fragment_shader: ShaderModule,
     pub pipeline: RenderPipeline,
 }
 
 pub fn init_composite(device: &Device, swapchain_format: &TextureFormat) -> Composite {
-    let render_shader = device.create_shader_module(ShaderModuleDescriptor {
+    // Load shader sources.
+    #[cfg(feature = "glsl")]
+    let vertex_shader_source = ShaderSource::Glsl {
+        shader: Cow::Borrowed(include_str!("composite.vert.glsl")),
+        stage: naga::ShaderStage::Vertex,
+        defines: FastHashMap::default(),
+    };
+    let fragment_shader_source = ShaderSource::Wgsl(Cow::Borrowed(include_str!("composite.wgsl")));
+    #[cfg(feature = "wgsl")]
+    let vertex_shader_source = fragment_shader_source.clone();
+
+    let vertex_shader = device.create_shader_module(ShaderModuleDescriptor {
         label: Some("Copy result to screen shader"),
-        source: ShaderSource::Wgsl(Cow::Borrowed(include_str!("composite.wgsl"))),
+        source: vertex_shader_source,
     });
+
     let vertex_state = VertexState {
-        module: &render_shader,
-        entry_point: "vertex_main",
+        module: &vertex_shader,
+        entry_point: "main",
         buffers: &[],
     };
+
+    let fragment_shader = device.create_shader_module(ShaderModuleDescriptor {
+        label: Some("Copy result to screen shader"),
+        source: fragment_shader_source,
+    });
+    let fragment_state = FragmentState {
+        module: &fragment_shader,
+        entry_point: "fragment_main",
+        targets: &[Some((*swapchain_format).into())],
+    };
+
     let render_bind_group_layout_descriptor = BindGroupLayoutDescriptor {
         label: Some("texture bind group layout"),
         entries: &[
@@ -53,11 +78,6 @@ pub fn init_composite(device: &Device, swapchain_format: &TextureFormat) -> Comp
         bind_group_layouts: &[&render_bind_group_layout],
         push_constant_ranges: &[],
     });
-    let fragment_state = FragmentState {
-        module: &render_shader,
-        entry_point: "fragment_main",
-        targets: &[Some((*swapchain_format).into())],
-    };
     let render_pipeline_descriptor = RenderPipelineDescriptor {
         label: Some("Render Pipeline Descriptor"),
         layout: Some(&render_pipeline_layout),
@@ -70,7 +90,8 @@ pub fn init_composite(device: &Device, swapchain_format: &TextureFormat) -> Comp
     };
     let render_pipeline = device.create_render_pipeline(&render_pipeline_descriptor);
     Composite {
-        shader: render_shader,
+        vertex_shader: vertex_shader,
+        fragment_shader: fragment_shader,
         pipeline: render_pipeline,
     }
 }
