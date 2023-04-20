@@ -25,6 +25,14 @@ pub fn init_composite(device: &Device, swapchain_format: &TextureFormat) -> Comp
         stage: naga::ShaderStage::Vertex,
         defines: FastHashMap::default(),
     };
+    #[cfg(feature = "glsl")]
+    let fragment_shader_source = ShaderSource::Glsl {
+        shader: Cow::Borrowed(include_str!("composite.frag.glsl")),
+        stage: naga::ShaderStage::Fragment,
+        defines: FastHashMap::default(),
+    };
+
+    #[cfg(feature = "wgsl")]
     let fragment_shader_source = ShaderSource::Wgsl(Cow::Borrowed(include_str!("composite.wgsl")));
     #[cfg(feature = "wgsl")]
     let vertex_shader_source = fragment_shader_source.clone();
@@ -46,7 +54,7 @@ pub fn init_composite(device: &Device, swapchain_format: &TextureFormat) -> Comp
     });
     let fragment_state = FragmentState {
         module: &fragment_shader,
-        entry_point: "fragment_main",
+        entry_point: "main",
         targets: &[Some((*swapchain_format).into())],
     };
 
